@@ -253,6 +253,280 @@ pub fn run_scan<F, const NA_AWARE: bool>(
     }
 }
 
+// ---------------------------------------------------------------------------
+// Moments fast path: separable sliding box sums, O(1) per pixel regardless of
+// window size. Used by every filter that only needs the window mean/variance
+// (mean, sum, sd, Lee, Kuan, enhanced Lee, Gamma-MAP).
+//
+// Per rayon task: a ring buffer holds the vertical window sums of the last
+// `wc` source columns; an accumulator column holds the horizontal total. Both
+// slide by add/subtract, so drift is bounded by the column length and the
+// band width. NaNs are never added to the sliding sums (a NaN entering a
+// running sum would poison every window after it); instead the fast path
+// keeps a sliding count of NaNs per window and poisons exactly the windows
+// that contain one, preserving `propagate` locality.
+
+/// Per-window vertical sums for one source column.
+struct ColSums {
+    sum: Vec<f64>,
+    sumsq: Vec<f64>,
+    cnt: Vec<u32>,
+    nan: Vec<u32>,
+}
+
+impl ColSums {
+    fn new(nr: usize) -> Self {
+        ColSums {
+            sum: vec![0.0; nr],
+            sumsq: vec![0.0; nr],
+            cnt: vec![0; nr],
+            nan: vec![0; nr],
+        }
+    }
+}
+
+/// Add one cell into a running (sum, sumsq, valid count, NaN count).
+#[inline]
+fn acc_cell(v: f64, s: &mut f64, q: &mut f64, n: &mut u32, nn: &mut u32) {
+    if v.is_nan() {
+        *nn += 1;
+    } else {
+        *s += v;
+        *q += v * v;
+        *n += 1;
+    }
+}
+
+/// Fill `cs` with the vertical window sums of window column `j` (possibly out
+/// of grid range; edge policy decides what it holds).
+fn vertical_sums<const NA_AWARE: bool>(
+    x: &[f64],
+    d: Dims,
+    w: Win,
+    edge: Edge,
+    j: isize,
+    cs: &mut ColSums,
+) {
+    let nr = d.nr;
+    let wr = 2 * w.hr + 1;
+    let cc = match map_idx(j, d.nc, edge) {
+        Some(cc) => cc,
+        None => {
+            // Whole column outside the grid: a constant pad or nothing.
+            match edge {
+                Edge::Constant(v) if !v.is_nan() => {
+                    cs.sum.fill(wr as f64 * v);
+                    cs.sumsq.fill(wr as f64 * v * v);
+                    cs.cnt.fill(wr as u32);
+                    cs.nan.fill(0);
+                }
+                Edge::Constant(_) => {
+                    // NaN pad: all cells missing.
+                    cs.sum.fill(0.0);
+                    cs.sumsq.fill(0.0);
+                    cs.cnt.fill(0);
+                    cs.nan.fill(wr as u32);
+                }
+                _ => {
+                    cs.sum.fill(0.0);
+                    cs.sumsq.fill(0.0);
+                    cs.cnt.fill(0);
+                    cs.nan.fill(0);
+                }
+            }
+            return;
+        }
+    };
+    let col = &x[cc * nr..(cc + 1) * nr];
+    let direct = |r: usize, cs: &mut ColSums| {
+        let (mut s, mut q, mut n, mut nn) = (0.0, 0.0, 0u32, 0u32);
+        for dr in -(w.hr as isize)..=(w.hr as isize) {
+            match map_idx(r as isize + dr, nr, edge) {
+                Some(rr) => acc_cell(col[rr], &mut s, &mut q, &mut n, &mut nn),
+                None => {
+                    if let Edge::Constant(v) = edge {
+                        acc_cell(v, &mut s, &mut q, &mut n, &mut nn);
+                    }
+                }
+            }
+        }
+        cs.sum[r] = s;
+        cs.sumsq[r] = q;
+        cs.cnt[r] = n;
+        cs.nan[r] = nn;
+    };
+    let r1 = nr.saturating_sub(w.hr);
+    if w.hr >= r1 {
+        // Window taller than the column: every row is a border row.
+        for r in 0..nr {
+            direct(r, cs);
+        }
+        return;
+    }
+    for r in 0..w.hr {
+        direct(r, cs);
+    }
+    // Interior rows slide: enter col[r + hr], leave col[r - hr - 1].
+    let (mut s, mut q, mut n, mut nn) = (0.0, 0.0, 0u32, 0u32);
+    for &v in col[0..wr].iter() {
+        acc_cell(v, &mut s, &mut q, &mut n, &mut nn);
+    }
+    cs.sum[w.hr] = s;
+    cs.sumsq[w.hr] = q;
+    cs.cnt[w.hr] = n;
+    cs.nan[w.hr] = nn;
+    for r in (w.hr + 1)..r1 {
+        let ev = col[r + w.hr];
+        let lv = col[r - w.hr - 1];
+        if ev.is_nan() {
+            nn += 1;
+        } else {
+            s += ev;
+            q += ev * ev;
+            n += 1;
+        }
+        if lv.is_nan() {
+            nn -= 1;
+        } else {
+            s -= lv;
+            q -= lv * lv;
+            n -= 1;
+        }
+        cs.sum[r] = s;
+        cs.sumsq[r] = q;
+        cs.cnt[r] = n;
+        cs.nan[r] = nn;
+    }
+    for r in r1..nr {
+        direct(r, cs);
+    }
+}
+
+/// Turn accumulated sums into the `Moments` a reducer sees. In the fast path
+/// a window containing any NaN is poisoned; in NA-aware mode NaNs were simply
+/// excluded.
+#[inline]
+fn materialize<const NA_AWARE: bool>(s: f64, q: f64, n: u32, nn: u32) -> Moments {
+    if !NA_AWARE && nn > 0 {
+        Moments {
+            sum: f64::NAN,
+            sumsq: f64::NAN,
+            n: n + nn,
+        }
+    } else {
+        Moments {
+            sum: s,
+            sumsq: q,
+            n,
+        }
+    }
+}
+
+/// Process one band of output columns `[c0, c0 + width)` of one layer.
+fn moments_band<F, const NA_AWARE: bool>(
+    x: &[f64],
+    d: Dims,
+    w: Win,
+    edge: Edge,
+    f: &F,
+    c0: usize,
+    out_band: &mut [f64],
+) where
+    F: Fn(f64, Moments) -> f64,
+{
+    let nr = d.nr;
+    let wc = 2 * w.hc + 1;
+    let width = out_band.len() / nr;
+    let mut ring: Vec<ColSums> = (0..wc).map(|_| ColSums::new(nr)).collect();
+    let mut asum = vec![0.0; nr];
+    let mut asumsq = vec![0.0; nr];
+    let mut acnt = vec![0u32; nr];
+    let mut anan = vec![0u32; nr];
+    // Prime the ring with the window columns of output column c0.
+    for (slot, dc) in (-(w.hc as isize)..=(w.hc as isize)).enumerate() {
+        vertical_sums::<NA_AWARE>(x, d, w, edge, c0 as isize + dc, &mut ring[slot]);
+        let cs = &ring[slot];
+        for r in 0..nr {
+            asum[r] += cs.sum[r];
+            asumsq[r] += cs.sumsq[r];
+            acnt[r] += cs.cnt[r];
+            anan[r] += cs.nan[r];
+        }
+    }
+    for (i, out_col) in out_band.chunks_mut(nr).enumerate() {
+        let c = c0 + i;
+        if i > 0 {
+            // Slide: the slot holding window column (c - 1 - hc) is replaced
+            // by window column (c + hc), which lands on the same ring slot.
+            let slot = (i - 1) % wc;
+            {
+                let cs = &ring[slot];
+                for r in 0..nr {
+                    asum[r] -= cs.sum[r];
+                    asumsq[r] -= cs.sumsq[r];
+                    acnt[r] -= cs.cnt[r];
+                    anan[r] -= cs.nan[r];
+                }
+            }
+            vertical_sums::<NA_AWARE>(x, d, w, edge, (c + w.hc) as isize, &mut ring[slot]);
+            let cs = &ring[slot];
+            for r in 0..nr {
+                asum[r] += cs.sum[r];
+                asumsq[r] += cs.sumsq[r];
+                acnt[r] += cs.cnt[r];
+                anan[r] += cs.nan[r];
+            }
+        }
+        let center = &x[c * nr..(c + 1) * nr];
+        for r in 0..nr {
+            let m = materialize::<NA_AWARE>(asum[r], asumsq[r], acnt[r], anan[r]);
+            out_col[r] = f(center[r], m);
+        }
+    }
+    debug_assert!(width >= 1);
+}
+
+/// Run a moments reducer over a stack of layers via separable sliding sums.
+/// `f(center, moments) -> output` is called once per cell; cost per pixel is
+/// independent of the window size.
+pub fn run_moments<F, const NA_AWARE: bool>(
+    x: &[f64],
+    d: Dims,
+    w: Win,
+    edge: Edge,
+    f: &F,
+    out: &mut [f64],
+) where
+    F: Fn(f64, Moments) -> f64 + Sync,
+{
+    let plane = d.nr * d.nc;
+    debug_assert!(plane > 0 && x.len() == out.len() && x.len() % plane == 0);
+    let threads = get_num_threads();
+    // Fixed band width, independent of the thread count: the summation order
+    // is then identical however the bands are scheduled, so results are
+    // bitwise reproducible across thread settings. 64 columns keeps the ring
+    // re-priming overhead small while bounding the horizontal slide's
+    // floating-point drift.
+    let band = 64.min(d.nc);
+    for (layer_x, layer_out) in x.chunks(plane).zip(out.chunks_mut(plane)) {
+        let do_band = |b: usize, out_band: &mut [f64]| {
+            moments_band::<F, NA_AWARE>(layer_x, d, w, edge, f, b * band, out_band);
+        };
+        if threads <= 1 {
+            for (b, out_band) in layer_out.chunks_mut(band * d.nr).enumerate() {
+                do_band(b, out_band);
+            }
+        } else {
+            maybe_par(|| {
+                layer_out
+                    .par_chunks_mut(band * d.nr)
+                    .enumerate()
+                    .for_each(|(b, out_band)| do_band(b, out_band));
+            });
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -344,6 +618,68 @@ mod tests {
         run_scan::<_, true>(&x, d, w, Edge::Reflect, &mean_reducer, &mut out);
         assert!(approx(out[0], 70.0 / 25.0));
         assert!(approx(out[3], 55.0 / 25.0));
+    }
+
+    /// Deterministic pseudo-random doubles in [0, 1) with NA holes.
+    fn lcg_data(n: usize, na_every: usize) -> Vec<f64> {
+        let mut state: u64 = 0x2545F4914F6CDD1D;
+        (0..n)
+            .map(|i| {
+                state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+                if na_every > 0 && i % na_every == na_every - 1 {
+                    NA
+                } else {
+                    (state >> 11) as f64 / (1u64 << 53) as f64
+                }
+            })
+            .collect()
+    }
+
+    #[test]
+    fn moments_path_matches_scan_path() {
+        let d = Dims { nr: 23, nc: 17 };
+        let x = lcg_data(d.nr * d.nc, 7);
+        let w = Win { hr: 2, hc: 1 };
+        let edges = [
+            Edge::Shrink,
+            Edge::Reflect,
+            Edge::Nearest,
+            Edge::Constant(0.5),
+            Edge::Constant(NA),
+        ];
+        let mean_m = |_: f64, m: Moments| if m.n == 0 { NA } else { m.mean() };
+        let sd_m = |_: f64, m: Moments| if m.n < 2 { NA } else { m.var_samp().sqrt() };
+        let mean_s = |_: f64, _: &mut Vec<f64>, m: Moments| if m.n == 0 { NA } else { m.mean() };
+        let sd_s = |_: f64, _: &mut Vec<f64>, m: Moments| if m.n < 2 { NA } else { m.var_samp().sqrt() };
+        let mut a = vec![0.0; x.len()];
+        let mut b = vec![0.0; x.len()];
+        for edge in edges {
+            run_moments::<_, true>(&x, d, w, edge, &mean_m, &mut a);
+            run_scan::<_, true>(&x, d, w, edge, &mean_s, &mut b);
+            assert!(a.iter().zip(&b).all(|(p, q)| approx(*p, *q)), "mean omit {edge:?}");
+            run_moments::<_, false>(&x, d, w, edge, &mean_m, &mut a);
+            run_scan::<_, false>(&x, d, w, edge, &mean_s, &mut b);
+            assert!(a.iter().zip(&b).all(|(p, q)| approx(*p, *q)), "mean prop {edge:?}");
+            run_moments::<_, true>(&x, d, w, edge, &sd_m, &mut a);
+            run_scan::<_, true>(&x, d, w, edge, &sd_s, &mut b);
+            assert!(a.iter().zip(&b).all(|(p, q)| approx(*p, *q)), "sd omit {edge:?}");
+        }
+    }
+
+    #[test]
+    fn moments_path_handles_oversized_windows() {
+        let d = Dims { nr: 4, nc: 3 };
+        let x = lcg_data(d.nr * d.nc, 5);
+        let w = Win { hr: 4, hc: 3 };
+        let mean_m = |_: f64, m: Moments| if m.n == 0 { NA } else { m.mean() };
+        let mean_s = |_: f64, _: &mut Vec<f64>, m: Moments| if m.n == 0 { NA } else { m.mean() };
+        let mut a = vec![0.0; x.len()];
+        let mut b = vec![0.0; x.len()];
+        for edge in [Edge::Shrink, Edge::Reflect, Edge::Nearest, Edge::Constant(1.0)] {
+            run_moments::<_, true>(&x, d, w, edge, &mean_m, &mut a);
+            run_scan::<_, true>(&x, d, w, edge, &mean_s, &mut b);
+            assert!(a.iter().zip(&b).all(|(p, q)| approx(*p, *q)), "{edge:?}");
+        }
     }
 
     #[test]

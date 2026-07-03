@@ -1,6 +1,6 @@
 //! Focal statistics over a moving window: the `rf_focal()` backend.
 
-use crate::engine::{run_scan, Dims, Edge, Moments, Win};
+use crate::engine::{run_moments, run_scan, Dims, Edge, Moments, Win};
 use extendr_api::prelude::*;
 
 /// Parse the edge policy string validated on the R side.
@@ -68,6 +68,26 @@ pub(crate) fn run_stat<F>(
     }
 }
 
+/// Monomorphise the NA policy branch for a moments reducer (the separable
+/// fast path used by mean/sum/sd and the single-pass speckle filters).
+pub(crate) fn run_stat_m<F>(
+    x: &[f64],
+    d: Dims,
+    w: Win,
+    edge: Edge,
+    na_omit: bool,
+    f: F,
+    out: &mut [f64],
+) where
+    F: Fn(f64, Moments) -> f64 + Sync,
+{
+    if na_omit {
+        run_moments::<F, true>(x, d, w, edge, &f, out);
+    } else {
+        run_moments::<F, false>(x, d, w, edge, &f, out);
+    }
+}
+
 /// Median of a scratch window; even counts average the two middle values.
 fn median_of(v: &mut [f64]) -> f64 {
     let n = v.len();
@@ -123,21 +143,21 @@ pub(crate) fn focal_stat(
     out: &mut [f64],
 ) {
     match stat {
-        "mean" => run_stat(x, d, w, edge, na_omit, |_, _, m| {
+        "mean" => run_stat_m(x, d, w, edge, na_omit, |_, m| {
             if m.n == 0 {
                 NAN
             } else {
                 m.mean()
             }
         }, out),
-        "sum" => run_stat(x, d, w, edge, na_omit, |_, _, m| {
+        "sum" => run_stat_m(x, d, w, edge, na_omit, |_, m| {
             if m.n == 0 {
                 NAN
             } else {
                 m.sum
             }
         }, out),
-        "sd" => run_stat(x, d, w, edge, na_omit, |_, _, m| {
+        "sd" => run_stat_m(x, d, w, edge, na_omit, |_, m| {
             if m.n < 2 {
                 NAN
             } else {
