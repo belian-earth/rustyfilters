@@ -10,6 +10,11 @@ NULL
 #' @keywords internal
 rf_focal_rs <- function(x, nr, nc, nl, wr, wc, stat, edge, edge_value, na_omit) .Call(wrap__rf_focal_rs, x, nr, nc, nl, wr, wc, stat, edge, edge_value, na_omit)
 
+#' Separable Gaussian blur over a stack of column-major layers.
+#' @noRd
+#' @keywords internal
+rf_gaussian_rs <- function(x, nr, nc, nl, wr, wc, sigma, edge, edge_value, na_omit) .Call(wrap__rf_gaussian_rs, x, nr, nc, nl, wr, wc, sigma, edge, edge_value, na_omit)
+
 #' @noRd
 #' @keywords internal
 rf_set_threads_rs <- function(n) .Call(wrap__rf_set_threads_rs, n)
