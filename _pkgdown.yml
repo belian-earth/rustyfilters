@@ -1,0 +1,45 @@
+url: https://belian-earth.github.io/rustyfilters/
+development:
+  mode: auto
+template:
+  bootstrap: 5
+  bootswatch: cosmo
+  bslib:
+    primary: '#74ac90ff'
+  math-rendering: mathjax
+navbar:
+  structure:
+    left:
+    - reference
+    - news
+    right:
+    - search
+    - github
+  components:
+    github:
+      icon: fa-github
+      href: https://github.com/belian-earth/rustyfilters
+reference:
+- title: Speckle filters
+  desc: Adaptive local-statistics filters for SAR intensity data.
+  contents:
+  - rf_lee
+  - rf_enhanced_lee
+  - rf_lee_sigma
+  - rf_frost
+  - rf_kuan
+  - rf_gamma_map
+- title: Smoothing
+  desc: Classic moving-window smoothers.
+  contents:
+  - rf_mean
+  - rf_gaussian
+  - rf_median
+- title: Focal statistics
+  desc: Window summaries beyond the mean.
+  contents:
+  - rf_focal
+- title: Configuration
+  desc: Multi-threading control.
+  contents:
+  - rf_set_threads

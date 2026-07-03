@@ -16,16 +16,34 @@ knitr::opts_chunk$set(
 # rustyfilters
 
 <!-- badges: start -->
+[![R-CMD-check](https://github.com/belian-earth/rustyfilters/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/belian-earth/rustyfilters/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/belian-earth/rustyfilters/graph/badge.svg)](https://app.codecov.io/gh/belian-earth/rustyfilters)
+[![License](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 <!-- badges: end -->
 
 Minimal, blazing-fast moving-window filters for R matrices, 3-D arrays and
-terra SpatRaster objects, powered by Rust and rayon. Includes SAR speckle
-filters (Lee, enhanced Lee, Lee sigma, Frost, Kuan, Gamma-MAP), smoothing
-filters (mean, Gaussian, median) and focal statistics (min, max, range, sd,
-sum, mode).
+terra `SpatRaster` objects, powered by Rust and rayon.
 
-Under construction; a full README with examples and benchmarks will follow
-once the API lands.
+- **Speckle filters** for SAR intensity data: `rf_lee()`,
+  `rf_enhanced_lee()`, `rf_lee_sigma()`, `rf_frost()`, `rf_kuan()`,
+  `rf_gamma_map()`.
+- **Smoothing**: `rf_mean()` (boxcar), `rf_gaussian()` (separable),
+  `rf_median()`.
+- **Focal statistics**: `rf_focal()` with min, max, range, sd, sum, mode.
+- **Parallel by default**: all cores on load; tune with `rf_set_threads()`.
+  Results are bitwise identical whatever the thread count.
+- **NA-aware by default**: missing cells are excluded from every window
+  statistic (`na_policy = "omit"`), with a documented fast path
+  (`na_policy = "propagate"`) that compiles NA handling out of the inner
+  loop entirely: any `NA` in a window then makes that cell `NA`. Choose it
+  when your data has no missing values.
+- **Four edge policies**: `"shrink"` (default), `"reflect"`, `"nearest"`,
+  `"constant"`.
+
+Mean, sum, sd and the single-pass speckle filters (Lee, enhanced Lee, Kuan,
+Gamma-MAP) run on a separable sliding-sum engine whose per-cell cost is
+independent of the window size, so a 21 x 21 window costs the same as
+3 x 3.
 
 ## Installation
 
@@ -33,3 +51,68 @@ once the API lands.
 # install.packages("pak")
 pak::pak("belian-earth/rustyfilters")
 ```
+
+Building from source needs a Rust toolchain (rustc >= 1.80):
+<https://rustup.rs>.
+
+## Quick start
+
+```{r example}
+library(rustyfilters)
+
+# A speckled two-level scene, as single-look SAR intensity might look
+set.seed(1)
+truth <- matrix(rep(c(1, 4), each = 3200), 80, 80)
+speckled <- truth * rexp(6400)
+
+despeckled <- rf_lee(speckled, window = 7L, looks = 1)
+
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+image(speckled, axes = FALSE, main = "speckled")
+image(despeckled, axes = FALSE, main = "rf_lee()")
+par(op)
+```
+
+Focal statistics and smoothing share the same engine:
+
+```{r focal}
+m <- matrix(as.numeric(1:25), 5)
+rf_focal(m, window = 3L, stat = "sd")
+rf_gaussian(m, sigma = 1)
+```
+
+### terra
+
+`SpatRaster` methods are available whenever terra is installed (the raster
+is materialised in memory, filtered layer by layer, and rebuilt with its
+geometry):
+
+```{r terra, eval = requireNamespace("terra", quietly = TRUE)}
+r <- terra::rast(system.file("ex/elev.tif", package = "terra"))
+rf_median(r, window = 5L)
+```
+
+### Threads
+
+Everything runs on all cores by default. Control it globally:
+
+```{r threads}
+rf_get_threads()
+old <- rf_set_threads(2L)
+rf_set_threads(old)
+```
+
+Set `options(rustyfilters.threads = n)` or `RUSTYFILTERS_NUM_THREADS` before
+loading to change the startup default.
+
+## Roadmap
+
+- Generic convolution (`rf_convolve()`), Sobel and Laplacian edge filters
+- Bilateral and guided edge-preserving smoothers
+- Improved Lee sigma (Lee et al. 2009)
+- Histogram/van Herk O(1) median, min and max
+
+## Acknowledgements
+
+The build tooling follows the [extendr](https://extendr.github.io/) /
+[rextendr](https://extendr.github.io/rextendr/) template.
