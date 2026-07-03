@@ -1,5 +1,7 @@
 use extendr_api::prelude::*;
 
+mod engine;
+mod focal;
 mod threading;
 
 // Macro to generate exports.
@@ -7,5 +9,6 @@ mod threading;
 // See corresponding C code in `entrypoint.c`.
 extendr_module! {
     mod rustyfilters;
+    use focal;
     use threading;
 }
