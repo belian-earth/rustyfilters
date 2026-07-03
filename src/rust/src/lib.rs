@@ -3,6 +3,7 @@ use extendr_api::prelude::*;
 mod engine;
 mod focal;
 mod gaussian;
+mod speckle;
 mod threading;
 
 // Macro to generate exports.
@@ -12,5 +13,6 @@ extendr_module! {
     mod rustyfilters;
     use focal;
     use gaussian;
+    use speckle;
     use threading;
 }

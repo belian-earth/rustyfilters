@@ -15,6 +15,44 @@ rf_focal_rs <- function(x, nr, nc, nl, wr, wc, stat, edge, edge_value, na_omit) 
 #' @keywords internal
 rf_gaussian_rs <- function(x, nr, nc, nl, wr, wc, sigma, edge, edge_value, na_omit) .Call(wrap__rf_gaussian_rs, x, nr, nc, nl, wr, wc, sigma, edge, edge_value, na_omit)
 
+#' Lee (1980): minimum mean-square-error linear estimator.
+#' `W = v / (v + (m * cu)^2)`, `out = m + W * (x - m)`.
+#' @noRd
+#' @keywords internal
+rf_lee_rs <- function(x, nr, nc, nl, wr, wc, looks, edge, edge_value, na_omit) .Call(wrap__rf_lee_rs, x, nr, nc, nl, wr, wc, looks, edge, edge_value, na_omit)
+
+#' Kuan (1985): `W = (1 - cu^2 / ci^2) / (1 + cu^2)` clamped to [0, 1].
+#' @noRd
+#' @keywords internal
+rf_kuan_rs <- function(x, nr, nc, nl, wr, wc, looks, edge, edge_value, na_omit) .Call(wrap__rf_kuan_rs, x, nr, nc, nl, wr, wc, looks, edge, edge_value, na_omit)
+
+#' Enhanced Lee (Lopes et al. 1990): three regimes split by ci against cu and
+#' cmax, with exponential damping between them.
+#' @noRd
+#' @keywords internal
+rf_enhanced_lee_rs <- function(x, nr, nc, nl, wr, wc, looks, damping, edge, edge_value, na_omit) .Call(wrap__rf_enhanced_lee_rs, x, nr, nc, nl, wr, wc, looks, damping, edge, edge_value, na_omit)
+
+#' Gamma-MAP (Lopes et al. 1990): maximum a posteriori under Gamma-
+#' distributed signal and speckle.
+#' @noRd
+#' @keywords internal
+rf_gamma_map_rs <- function(x, nr, nc, nl, wr, wc, looks, edge, edge_value, na_omit) .Call(wrap__rf_gamma_map_rs, x, nr, nc, nl, wr, wc, looks, edge, edge_value, na_omit)
+
+#' Frost (1982): exponentially damped kernel whose decay adapts to the local
+#' variation coefficient. Two stages: the moments path computes the per-pixel
+#' damping factor `B = damping * ci^2`, then a scan applies the kernel
+#' `exp(-B * dist)` over the window.
+#' @noRd
+#' @keywords internal
+rf_frost_rs <- function(x, nr, nc, nl, wr, wc, damping, edge, edge_value, na_omit) .Call(wrap__rf_frost_rs, x, nr, nc, nl, wr, wc, damping, edge, edge_value, na_omit)
+
+#' Lee sigma (1983): mean of the window pixels inside the two-sigma bounds
+#' `x * (1 +/- k * cu)`; if fewer than `min_count` pixels qualify, fall back
+#' to the full window mean.
+#' @noRd
+#' @keywords internal
+rf_lee_sigma_rs <- function(x, nr, nc, nl, wr, wc, looks, k, min_count, edge, edge_value, na_omit) .Call(wrap__rf_lee_sigma_rs, x, nr, nc, nl, wr, wc, looks, k, min_count, edge, edge_value, na_omit)
+
 #' @noRd
 #' @keywords internal
 rf_set_threads_rs <- function(n) .Call(wrap__rf_set_threads_rs, n)
