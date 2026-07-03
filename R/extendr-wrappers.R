@@ -5,8 +5,12 @@
 #' @useDynLib rustyfilters, .registration = TRUE
 NULL
 
-#' Return string `"Hello world!"` to R.
-#' @export
-hello_world <- function() .Call(wrap__hello_world)
+#' @noRd
+#' @keywords internal
+rf_set_threads_rs <- function(n) .Call(wrap__rf_set_threads_rs, n)
+
+#' @noRd
+#' @keywords internal
+rf_get_threads_rs <- function() .Call(wrap__rf_get_threads_rs)
 
 # nolint end
