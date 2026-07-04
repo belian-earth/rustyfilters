@@ -9,7 +9,17 @@
 \alias{rf_lee_sigma_improved.SpatRaster}
 \title{Improved Lee sigma speckle filter}
 \usage{
-\method{rf_lee_sigma_improved}{Rcpp_GDALRaster}(x, ...)
+\method{rf_lee_sigma_improved}{Rcpp_GDALRaster}(
+  x,
+  window = 7L,
+  looks = 1,
+  sigma = 0.9,
+  target_window = 3L,
+  edge = c("shrink", "reflect", "nearest", "constant"),
+  edge_value = 0,
+  na_policy = c("omit", "propagate"),
+  ...
+)
 
 rf_lee_sigma_improved(x, ...)
 
@@ -45,12 +55,18 @@ rf_lee_sigma_improved(x, ...)
 \item{x}{A numeric matrix or 3-D array (filtered layer by layer). Methods
 are also provided for terra \code{SpatRaster} objects (when terra is
 installed) and for open gdalraster \code{GDALRaster} datasets (when
-gdalraster is installed). \code{GDALRaster} methods read the dataset into
-memory, filter it, and return a new \code{GDALRaster} object open in update
-mode on a Float64 dataset with the source's geometry: an in-memory
-\verb{/vsimem} GTiff by default, or pass \code{filename} to write to disk.}
-
-\item{...}{Passed on to methods.}
+gdalraster is installed). \code{GDALRaster} methods return a new
+\code{GDALRaster} object open in update mode on a Float64 dataset with the
+source's geometry. Small datasets are filtered in memory and land on an
+in-memory \verb{/vsimem} GTiff by default; datasets whose decoded size
+exceeds \code{options(rustyfilters.block_memory)} (default 2 GiB) stream
+through full-width row bands with a halo sized to the filter's window,
+writing to a GeoTIFF tempfile instead. Interior band seams are exact
+(the halo supplies the true neighbouring data; \code{edge} fires only at
+real raster edges). \code{GDALRaster} methods accept three extra arguments:
+\code{filename} (output path, replacing the tempfile/\verb{/vsimem} default),
+\code{by_block} (\code{TRUE}/\code{FALSE} to force or forbid streaming) and
+\code{block_rows} (rows per band, sized from the memory budget by default).}
 
 \item{window}{Window size in cells: a single odd positive integer, or a
 pair \code{c(rows, cols)} of odd positive integers.}
@@ -78,6 +94,8 @@ window with no valid cells yields \code{NA}. \code{"propagate"} is the fast path
 no per-cell NA handling is compiled into the inner loop, and any \code{NA}
 in a window makes the result \code{NA}. Use it when the input has no missing
 values (or when spreading \code{NA} is acceptable) for maximum speed.}
+
+\item{...}{Passed on to methods.}
 }
 \value{
 An object of the same class and dimensions as \code{x} (dimnames are

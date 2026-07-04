@@ -550,10 +550,13 @@ fn lee_sigma_improved_layer<const NA_AWARE: bool>(
     eta_v2: f64,
     eta_vp2: f64,
     edge: Edge,
+    z98_given: Option<f64>,
     out: &mut [f64],
 ) {
     let nr = d.nr;
-    let z98 = z98_of(layer);
+    // The block-streaming path supplies a precomputed global percentile so
+    // tiled results match the whole-image run exactly.
+    let z98 = z98_given.unwrap_or_else(|| z98_of(layer));
     // Pass 1: detectors -- bright pixels whose target window holds a bright
     // cluster. Pass 2: point targets -- bright pixels near a detector. This
     // is an order-independent variant of the 2009 paper's sequential
@@ -645,8 +648,10 @@ fn lee_sigma_improved_layer<const NA_AWARE: bool>(
 }
 
 /// Improved Lee sigma (Lee et al. 2009) over a stack of column-major layers.
-/// `sigma_idx` indexes 0.5-0.9; `looks` must be 1-4; `twr`/`twc` give the
-/// target window.
+/// `sigma_idx` indexes 0.5-0.9; `looks` must be 1-4; `twr` gives the square
+/// target window. `z98` supplies a precomputed per-layer 98th percentile
+/// (length `nl`; empty to compute per layer): the block-streaming path uses
+/// it so tiled results match the whole-image run exactly.
 /// @noRd
 /// @keywords internal
 #[extendr]
@@ -661,6 +666,7 @@ fn rf_lee_sigma_improved_rs(
     looks: i32,
     sigma_idx: i32,
     twr: i32,
+    z98: &[f64],
     edge: &str,
     edge_value: f64,
     na_omit: bool,
@@ -675,6 +681,9 @@ fn rf_lee_sigma_improved_rs(
     if twr < 1 || twr % 2 == 0 {
         throw_r_error("`target_window` must be an odd positive integer");
     }
+    if !(z98.is_empty() || z98.len() == nl as usize) {
+        throw_r_error("internal error: `z98` must be empty or one value per layer");
+    }
     let tw = Win {
         hr: (twr as usize - 1) / 2,
         hc: (twr as usize - 1) / 2,
@@ -685,14 +694,15 @@ fn rf_lee_sigma_improved_rs(
     let edge = parse_edge(edge, edge_value);
     let plane = d.nr * d.nc;
     fill_out(x.len(), |out| {
-        for (layer, out_layer) in x.chunks(plane).zip(out.chunks_mut(plane)) {
+        for (l, (layer, out_layer)) in x.chunks(plane).zip(out.chunks_mut(plane)).enumerate() {
+            let z = z98.get(l).copied();
             if na_omit {
                 lee_sigma_improved_layer::<true>(
-                    layer, d, w, tw, i1, i2, eta_v2, eta_vp2, edge, out_layer,
+                    layer, d, w, tw, i1, i2, eta_v2, eta_vp2, edge, z, out_layer,
                 );
             } else {
                 lee_sigma_improved_layer::<false>(
-                    layer, d, w, tw, i1, i2, eta_v2, eta_vp2, edge, out_layer,
+                    layer, d, w, tw, i1, i2, eta_v2, eta_vp2, edge, z, out_layer,
                 );
             }
         }

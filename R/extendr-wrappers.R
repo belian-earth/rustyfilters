@@ -70,11 +70,13 @@ rf_frost_rs <- function(x, nr, nc, nl, wr, wc, damping, edge, edge_value, na_omi
 rf_lee_sigma_rs <- function(x, nr, nc, nl, wr, wc, looks, k, min_count, edge, edge_value, na_omit) .Call(wrap__rf_lee_sigma_rs, x, nr, nc, nl, wr, wc, looks, k, min_count, edge, edge_value, na_omit)
 
 #' Improved Lee sigma (Lee et al. 2009) over a stack of column-major layers.
-#' `sigma_idx` indexes 0.5-0.9; `looks` must be 1-4; `twr`/`twc` give the
-#' target window.
+#' `sigma_idx` indexes 0.5-0.9; `looks` must be 1-4; `twr` gives the square
+#' target window. `z98` supplies a precomputed per-layer 98th percentile
+#' (length `nl`; empty to compute per layer): the block-streaming path uses
+#' it so tiled results match the whole-image run exactly.
 #' @noRd
 #' @keywords internal
-rf_lee_sigma_improved_rs <- function(x, nr, nc, nl, wr, wc, looks, sigma_idx, twr, edge, edge_value, na_omit) .Call(wrap__rf_lee_sigma_improved_rs, x, nr, nc, nl, wr, wc, looks, sigma_idx, twr, edge, edge_value, na_omit)
+rf_lee_sigma_improved_rs <- function(x, nr, nc, nl, wr, wc, looks, sigma_idx, twr, z98, edge, edge_value, na_omit) .Call(wrap__rf_lee_sigma_improved_rs, x, nr, nc, nl, wr, wc, looks, sigma_idx, twr, z98, edge, edge_value, na_omit)
 
 #' @noRd
 #' @keywords internal

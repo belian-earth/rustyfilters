@@ -116,7 +116,11 @@ rf_median(r, window = 5L)
 
 Open gdalraster `GDALRaster` datasets work the same way: the result is a
 new `GDALRaster` object on a Float64 dataset with the source’s geometry,
-in-memory (`/vsimem`) by default or on disk via `filename`:
+in-memory (`/vsimem`) by default or on disk via `filename`. Rasters too
+large for memory (above `options(rustyfilters.block_memory)`, default 2
+GiB) are streamed automatically through row bands with a filter-sized
+halo, writing to a GeoTIFF tempfile; interior band seams are exact, and
+`by_block`/`block_rows` give manual control:
 
 ``` r
 f <- system.file("extdata/storml_elev.tif", package = "gdalraster")
@@ -125,7 +129,7 @@ smoothed <- rf_median(ds, window = 5L)
 smoothed
 #> C++ object of class <GDALRaster>
 #> • Driver: GeoTIFF (GTiff)
-#> • DSN: "/vsimem/rustyfilters_51bf42fa4b728.tif"
+#> • DSN: "/vsimem/rustyfilters_81a6a2c4b12a8.tif"
 #> • Dimensions: 143, 107, 1
 #> • CRS: NAD83 / UTM zone 12N (EPSG:26912)
 #> • Pixel resolution: 30.000000, 30.000000

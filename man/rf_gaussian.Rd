@@ -9,7 +9,7 @@
 \alias{rf_gaussian.SpatRaster}
 \title{Gaussian blur}
 \usage{
-\method{rf_gaussian}{Rcpp_GDALRaster}(x, ...)
+\method{rf_gaussian}{Rcpp_GDALRaster}(x, sigma = 1, window = NULL, ...)
 
 rf_gaussian(x, ...)
 
@@ -41,12 +41,18 @@ rf_gaussian(x, ...)
 \item{x}{A numeric matrix or 3-D array (filtered layer by layer). Methods
 are also provided for terra \code{SpatRaster} objects (when terra is
 installed) and for open gdalraster \code{GDALRaster} datasets (when
-gdalraster is installed). \code{GDALRaster} methods read the dataset into
-memory, filter it, and return a new \code{GDALRaster} object open in update
-mode on a Float64 dataset with the source's geometry: an in-memory
-\verb{/vsimem} GTiff by default, or pass \code{filename} to write to disk.}
-
-\item{...}{Passed on to methods.}
+gdalraster is installed). \code{GDALRaster} methods return a new
+\code{GDALRaster} object open in update mode on a Float64 dataset with the
+source's geometry. Small datasets are filtered in memory and land on an
+in-memory \verb{/vsimem} GTiff by default; datasets whose decoded size
+exceeds \code{options(rustyfilters.block_memory)} (default 2 GiB) stream
+through full-width row bands with a halo sized to the filter's window,
+writing to a GeoTIFF tempfile instead. Interior band seams are exact
+(the halo supplies the true neighbouring data; \code{edge} fires only at
+real raster edges). \code{GDALRaster} methods accept three extra arguments:
+\code{filename} (output path, replacing the tempfile/\verb{/vsimem} default),
+\code{by_block} (\code{TRUE}/\code{FALSE} to force or forbid streaming) and
+\code{block_rows} (rows per band, sized from the memory budget by default).}
 
 \item{sigma}{Single positive number: the Gaussian standard deviation in
 cells.}
@@ -55,6 +61,8 @@ cells.}
 pair \code{c(rows, cols)}. The default \code{NULL} uses
 \code{2 * ceiling(3 * sigma) + 1} in both dimensions, which captures
 effectively all of the kernel mass.}
+
+\item{...}{Passed on to methods.}
 
 \item{edge}{How to treat windows that overhang the matrix edge:
 \code{"shrink"} (default) truncates the window to the cells that exist;

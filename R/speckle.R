@@ -366,21 +366,18 @@ rf_lee_sigma_improved <- function(x, ...) {
   UseMethod("rf_lee_sigma_improved")
 }
 
-#' @rdname rf_lee_sigma_improved
-#' @export
-rf_lee_sigma_improved.matrix <- function(x, window = 7L, looks = 1,
-                                         sigma = 0.9, target_window = 3L,
-                                         edge = c("shrink", "reflect", "nearest", "constant"),
-                                         edge_value = 0,
-                                         na_policy = c("omit", "propagate"),
-                                         ...) {
-  edge <- rlang::arg_match(edge)
-  na_policy <- rlang::arg_match(na_policy)
-  looks <- vctrs::vec_cast(looks, integer())
+# Shared implementation: `z98` optionally injects precomputed per-layer 98th
+# percentiles (used by the GDALRaster block engine so tiled and whole-image
+# results match exactly); NULL computes them per layer in Rust.
+lee_sigma_improved_impl <- function(x, window, looks, sigma, target_window,
+                                    edge, edge_value, na_policy, z98 = NULL,
+                                    call = rlang::caller_env()) {
+  looks <- vctrs::vec_cast(looks, integer(), call = call)
   if (length(looks) != 1L || is.na(looks) || !looks %in% 1:4) {
     cli::cli_abort(
       "{.arg looks} must be 1, 2, 3 or 4 (the published sigma range tables
-       cover these)."
+       cover these).",
+      call = call
     )
   }
   sigma_levels <- c(0.5, 0.6, 0.7, 0.8, 0.9)
@@ -391,20 +388,40 @@ rf_lee_sigma_improved.matrix <- function(x, window = 7L, looks = 1,
   ))
   if (length(sigma) != 1L || is.na(sigma_idx)) {
     cli::cli_abort(
-      "{.arg sigma} must be one of {.val {sigma_levels}}."
+      "{.arg sigma} must be one of {.val {sigma_levels}}.",
+      call = call
     )
   }
-  target_window <- vctrs::vec_cast(target_window, integer())
+  target_window <- vctrs::vec_cast(target_window, integer(), call = call)
   ok <- length(target_window) == 1L && !is.na(target_window) &&
     target_window >= 3L && target_window %% 2L == 1L
   if (!ok) {
     cli::cli_abort(
-      "{.arg target_window} must be a single odd integer >= 3."
+      "{.arg target_window} must be a single odd integer >= 3.",
+      call = call
     )
   }
   rf_dispatch(
-    x, rf_lee_sigma_improved_rs, list(looks, sigma_idx - 1L, target_window),
-    window, edge, edge_value, na_policy
+    x, rf_lee_sigma_improved_rs,
+    list(looks, sigma_idx - 1L, target_window, z98 %||% numeric(0)),
+    window, edge, edge_value, na_policy,
+    call = call
+  )
+}
+
+#' @rdname rf_lee_sigma_improved
+#' @export
+rf_lee_sigma_improved.matrix <- function(x, window = 7L, looks = 1,
+                                         sigma = 0.9, target_window = 3L,
+                                         edge = c("shrink", "reflect", "nearest", "constant"),
+                                         edge_value = 0,
+                                         na_policy = c("omit", "propagate"),
+                                         ...) {
+  edge <- rlang::arg_match(edge)
+  na_policy <- rlang::arg_match(na_policy)
+  lee_sigma_improved_impl(
+    x, window, looks, sigma, target_window,
+    edge, edge_value, na_policy
   )
 }
 

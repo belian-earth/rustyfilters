@@ -1,5 +1,13 @@
 # rustyfilters 0.0.0.9000
 
+* `GDALRaster` methods stream rasters larger than
+  `options(rustyfilters.block_memory)` (default 2 GiB) through full-width
+  row bands with a filter-sized halo, writing to a GeoTIFF tempfile (or
+  `filename`). Interior band seams are exact; `by_block` and `block_rows`
+  control the behaviour. `rf_lee_sigma_improved()` computes its global 98th
+  percentile exactly when streaming, so tiled results match the whole-image
+  run bit for bit.
+
 * All filters gained methods for open gdalraster `GDALRaster` datasets
   (gdalraster in Suggests): results are returned as a new `GDALRaster`
   object on an in-memory `/vsimem` GTiff, or written to `filename`.

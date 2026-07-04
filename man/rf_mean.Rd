@@ -9,7 +9,7 @@
 \alias{rf_mean.SpatRaster}
 \title{Moving-window mean (boxcar) filter}
 \usage{
-\method{rf_mean}{Rcpp_GDALRaster}(x, ...)
+\method{rf_mean}{Rcpp_GDALRaster}(x, window = 3L, ...)
 
 rf_mean(x, ...)
 
@@ -39,15 +39,23 @@ rf_mean(x, ...)
 \item{x}{A numeric matrix or 3-D array (filtered layer by layer). Methods
 are also provided for terra \code{SpatRaster} objects (when terra is
 installed) and for open gdalraster \code{GDALRaster} datasets (when
-gdalraster is installed). \code{GDALRaster} methods read the dataset into
-memory, filter it, and return a new \code{GDALRaster} object open in update
-mode on a Float64 dataset with the source's geometry: an in-memory
-\verb{/vsimem} GTiff by default, or pass \code{filename} to write to disk.}
-
-\item{...}{Passed on to methods.}
+gdalraster is installed). \code{GDALRaster} methods return a new
+\code{GDALRaster} object open in update mode on a Float64 dataset with the
+source's geometry. Small datasets are filtered in memory and land on an
+in-memory \verb{/vsimem} GTiff by default; datasets whose decoded size
+exceeds \code{options(rustyfilters.block_memory)} (default 2 GiB) stream
+through full-width row bands with a halo sized to the filter's window,
+writing to a GeoTIFF tempfile instead. Interior band seams are exact
+(the halo supplies the true neighbouring data; \code{edge} fires only at
+real raster edges). \code{GDALRaster} methods accept three extra arguments:
+\code{filename} (output path, replacing the tempfile/\verb{/vsimem} default),
+\code{by_block} (\code{TRUE}/\code{FALSE} to force or forbid streaming) and
+\code{block_rows} (rows per band, sized from the memory budget by default).}
 
 \item{window}{Window size in cells: a single odd positive integer, or a
 pair \code{c(rows, cols)} of odd positive integers.}
+
+\item{...}{Passed on to methods.}
 
 \item{edge}{How to treat windows that overhang the matrix edge:
 \code{"shrink"} (default) truncates the window to the cells that exist;
