@@ -10,6 +10,12 @@ pub(crate) fn get_num_threads() -> usize {
 }
 
 /// `n == 0` means auto-detect: use all available cores.
+///
+/// A dedicated pool is built even for `n == 1`: every filter runs the same
+/// parallel code path on it, so the machine code executed is identical
+/// whatever the thread count and results are bitwise reproducible. (A
+/// separate sequential branch would be monomorphised separately, and the
+/// optimiser can contract floating-point operations differently in each.)
 fn set_num_threads(n: usize) {
     let n = if n == 0 {
         std::thread::available_parallelism()
@@ -19,18 +25,16 @@ fn set_num_threads(n: usize) {
         n
     };
     NUM_THREADS.store(n, Ordering::Relaxed);
-    if n > 1 {
-        let pool = rayon::ThreadPoolBuilder::new()
-            .num_threads(n)
-            .build()
-            .expect("failed to build thread pool");
-        *POOL.lock().unwrap() = Some(pool);
-    } else {
-        *POOL.lock().unwrap() = None;
-    }
+    let pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(n)
+        .build()
+        .expect("failed to build thread pool");
+    *POOL.lock().unwrap() = Some(pool);
 }
 
-/// Run closure on the rayon pool if threads > 1, otherwise run directly.
+/// Run closure on the package's rayon pool. Before the pool exists (only
+/// possible outside an R session, e.g. `cargo test`), rayon's global pool
+/// serves; the executed code is the same either way.
 pub(crate) fn maybe_par<F, R>(f: F) -> R
 where
     F: FnOnce() -> R + Send,

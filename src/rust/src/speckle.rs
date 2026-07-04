@@ -13,11 +13,9 @@
 //! reconstruct the signal *at* the observed pixel, so there is nothing to
 //! filter (unlike the smoothing filters, which still summarise neighbours).
 
-use crate::engine::{map_idx, Dims, Edge, Moments, Win};
+use crate::engine::{map_idx, par_columns, Dims, Edge, Moments, Win};
 use crate::focal::{check_geom, fill_out, parse_edge, run_stat_m};
-use crate::threading::{get_num_threads, maybe_par};
 use extendr_api::prelude::*;
-use rayon::prelude::*;
 
 const NAN: f64 = f64::NAN;
 
@@ -352,7 +350,7 @@ fn frost_apply<const NA_AWARE: bool>(
             f64::NAN
         }
     };
-    let column = |g: usize, out_col: &mut [f64]| {
+    par_columns(out, nr, |g, out_col| {
         let (l, c) = (g / d.nc, g % d.nc);
         let layer = &x[l * plane..(l + 1) * plane];
         let bcol = &bfac[l * plane + c * nr..l * plane + (c + 1) * nr];
@@ -362,18 +360,7 @@ fn frost_apply<const NA_AWARE: bool>(
             let interior = interior_col && r >= w.hr && r < r1;
             *o = cell(layer, bcol[r], r, c, interior);
         }
-    };
-    if get_num_threads() <= 1 {
-        for (g, out_col) in out.chunks_mut(nr).enumerate() {
-            column(g, out_col);
-        }
-    } else {
-        maybe_par(|| {
-            out.par_chunks_mut(nr)
-                .enumerate()
-                .for_each(|(g, out_col)| column(g, out_col));
-        });
-    }
+    });
 }
 
 /// Lee sigma (1983): mean of the window pixels inside the two-sigma bounds
@@ -439,6 +426,279 @@ fn rf_lee_sigma_rs(
     })
 }
 
+// ---------------------------------------------------------------------------
+// Improved Lee sigma (Lee et al. 2009).
+//
+// Sigma range bounds (i1, i2) and the revised speckle variation coefficient
+// eta_v' for intensity data, from Table I/II of Lee, Wen, Ainsworth, Chen &
+// Chen (2009), "Improved sigma filter for speckle filtering of SAR imagery",
+// IEEE TGRS 47(1). Rows: looks 1-4; columns: sigma 0.5-0.9.
+const SIGMA_2009: [[(f64, f64, f64); 5]; 4] = [
+    [
+        (0.436, 1.920, 0.4057),
+        (0.343, 2.210, 0.4954),
+        (0.254, 2.582, 0.5911),
+        (0.168, 3.094, 0.6966),
+        (0.084, 3.941, 0.8191),
+    ],
+    [
+        (0.582, 1.584, 0.2763),
+        (0.501, 1.755, 0.3388),
+        (0.418, 1.972, 0.4062),
+        (0.327, 2.260, 0.4810),
+        (0.221, 2.744, 0.5699),
+    ],
+    [
+        (0.652, 1.458, 0.2222),
+        (0.580, 1.586, 0.2736),
+        (0.505, 1.751, 0.3280),
+        (0.419, 1.965, 0.3892),
+        (0.313, 2.320, 0.4624),
+    ],
+    [
+        (0.694, 1.385, 0.1921),
+        (0.630, 1.495, 0.2348),
+        (0.560, 1.627, 0.2825),
+        (0.480, 1.804, 0.3354),
+        (0.378, 2.094, 0.3991),
+    ],
+];
+
+/// Bright pixels within a target window needed to call a cluster a point
+/// target (Lee et al. 2009 / SNAP convention).
+const TARGET_CLUSTER_SIZE: usize = 5;
+
+/// MMSE estimate: `(1 - b) * mean + b * x0` with `b = varX / varY`,
+/// `varX = (varY - mean^2 * eta2) / (1 + eta2)` clamped at 0. Sample
+/// variance, matching the 2009 filter's reference implementation.
+fn mmse(vals: &[f64], x0: f64, eta2: f64) -> f64 {
+    let n = vals.len();
+    let mean = vals.iter().sum::<f64>() / n as f64;
+    if n < 2 {
+        return mean;
+    }
+    let var_y = vals.iter().map(|v| (v - mean) * (v - mean)).sum::<f64>() / (n - 1) as f64;
+    if var_y == 0.0 {
+        return mean;
+    }
+    let var_x = ((var_y - mean * mean * eta2) / (1.0 + eta2)).max(0.0);
+    let b = var_x / var_y;
+    (1.0 - b) * mean + b * x0
+}
+
+/// Gather the valid values of a window around (r, c), optionally keeping only
+/// those inside `range`. Returns None in propagate mode when the window holds
+/// a NaN.
+#[allow(clippy::too_many_arguments)]
+fn gather_valid<const NA_AWARE: bool>(
+    layer: &[f64],
+    d: Dims,
+    w: Win,
+    edge: Edge,
+    r: usize,
+    c: usize,
+    range: Option<(f64, f64)>,
+    scratch: &mut Vec<f64>,
+) -> Option<()> {
+    scratch.clear();
+    for dc in -(w.hc as isize)..=(w.hc as isize) {
+        let cc = map_idx(c as isize + dc, d.nc, edge);
+        for dr in -(w.hr as isize)..=(w.hr as isize) {
+            let v = match (cc, map_idx(r as isize + dr, d.nr, edge)) {
+                (Some(cc), Some(rr)) => layer[cc * d.nr + rr],
+                _ => match edge {
+                    Edge::Constant(v) => v,
+                    _ => continue,
+                },
+            };
+            if v.is_nan() {
+                if NA_AWARE {
+                    continue;
+                }
+                return None;
+            }
+            match range {
+                Some((lo, hi)) if v < lo || v > hi => {}
+                _ => scratch.push(v),
+            }
+        }
+    }
+    Some(())
+}
+
+/// 98th percentile of the valid cells of one layer.
+fn z98_of(layer: &[f64]) -> f64 {
+    let mut vals: Vec<f64> = layer.iter().copied().filter(|v| !v.is_nan()).collect();
+    if vals.is_empty() {
+        return f64::INFINITY;
+    }
+    let idx = (((vals.len() as f64) * 0.98) as usize)
+        .saturating_sub(1)
+        .min(vals.len() - 1);
+    let (_, &mut v, _) = vals.select_nth_unstable_by(idx, |a, b| a.total_cmp(b));
+    v
+}
+
+#[allow(clippy::too_many_arguments)]
+fn lee_sigma_improved_layer<const NA_AWARE: bool>(
+    layer: &[f64],
+    d: Dims,
+    w: Win,
+    tw: Win,
+    i1: f64,
+    i2: f64,
+    eta_v2: f64,
+    eta_vp2: f64,
+    edge: Edge,
+    out: &mut [f64],
+) {
+    let nr = d.nr;
+    let z98 = z98_of(layer);
+    // Pass 1: detectors -- bright pixels whose target window holds a bright
+    // cluster. Pass 2: point targets -- bright pixels near a detector. This
+    // is an order-independent variant of the 2009 paper's sequential
+    // marking; detected clusters are preserved untouched either way.
+    let mut detector = vec![0.0; layer.len()];
+    par_columns(&mut detector, nr, |c, det_col| {
+        for (r, o) in det_col.iter_mut().enumerate() {
+            let v = layer[c * nr + r];
+            if v.is_nan() || v <= z98 {
+                continue;
+            }
+            let mut cluster = 0usize;
+            for dc in -(tw.hc as isize)..=(tw.hc as isize) {
+                let cc = map_idx(c as isize + dc, d.nc, edge);
+                for dr in -(tw.hr as isize)..=(tw.hr as isize) {
+                    if let (Some(cc), Some(rr)) = (cc, map_idx(r as isize + dr, nr, edge)) {
+                        let q = layer[cc * nr + rr];
+                        if !q.is_nan() && q > z98 {
+                            cluster += 1;
+                        }
+                    }
+                }
+            }
+            if cluster > TARGET_CLUSTER_SIZE {
+                *o = 1.0;
+            }
+        }
+    });
+    let mut target = vec![0.0; layer.len()];
+    par_columns(&mut target, nr, |c, tgt_col| {
+        for (r, o) in tgt_col.iter_mut().enumerate() {
+            let v = layer[c * nr + r];
+            if v.is_nan() || v <= z98 {
+                continue;
+            }
+            'search: for dc in -(tw.hc as isize)..=(tw.hc as isize) {
+                let cc = map_idx(c as isize + dc, d.nc, edge);
+                for dr in -(tw.hr as isize)..=(tw.hr as isize) {
+                    if let (Some(cc), Some(rr)) = (cc, map_idx(r as isize + dr, nr, edge)) {
+                        if detector[cc * nr + rr] == 1.0 {
+                            *o = 1.0;
+                            break 'search;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    // Pass 3: filter.
+    par_columns(out, nr, |c, out_col| {
+        let mut scratch = Vec::with_capacity((2 * w.hr + 1) * (2 * w.hc + 1));
+        for (r, o) in out_col.iter_mut().enumerate() {
+            let x0 = layer[c * nr + r];
+            if x0.is_nan() {
+                *o = f64::NAN;
+                continue;
+            }
+            if target[c * nr + r] == 1.0 {
+                *o = x0;
+                continue;
+            }
+            // A priori mean from the target window, then MMSE over the
+            // filter-window pixels inside the sigma range.
+            let est = match gather_valid::<NA_AWARE>(layer, d, tw, edge, r, c, None, &mut scratch)
+            {
+                None => {
+                    *o = f64::NAN;
+                    continue;
+                }
+                Some(()) if scratch.is_empty() => x0,
+                Some(()) => mmse(&scratch, x0, eta_v2),
+            };
+            match gather_valid::<NA_AWARE>(
+                layer,
+                d,
+                w,
+                edge,
+                r,
+                c,
+                Some((est * i1, est * i2)),
+                &mut scratch,
+            ) {
+                None => *o = f64::NAN,
+                Some(()) if scratch.is_empty() => *o = x0,
+                Some(()) => *o = mmse(&scratch, x0, eta_vp2),
+            }
+        }
+    });
+}
+
+/// Improved Lee sigma (Lee et al. 2009) over a stack of column-major layers.
+/// `sigma_idx` indexes 0.5-0.9; `looks` must be 1-4; `twr`/`twc` give the
+/// target window.
+/// @noRd
+/// @keywords internal
+#[extendr]
+#[allow(clippy::too_many_arguments)]
+fn rf_lee_sigma_improved_rs(
+    x: &[f64],
+    nr: i32,
+    nc: i32,
+    nl: i32,
+    wr: i32,
+    wc: i32,
+    looks: i32,
+    sigma_idx: i32,
+    twr: i32,
+    edge: &str,
+    edge_value: f64,
+    na_omit: bool,
+) -> Doubles {
+    let (d, w) = check_geom(x.len(), nr, nc, nl, wr, wc);
+    if !(1..=4).contains(&looks) {
+        throw_r_error("`looks` must be 1, 2, 3 or 4 for the improved Lee sigma filter");
+    }
+    if !(0..=4).contains(&sigma_idx) {
+        throw_r_error("internal error: bad sigma index");
+    }
+    if twr < 1 || twr % 2 == 0 {
+        throw_r_error("`target_window` must be an odd positive integer");
+    }
+    let tw = Win {
+        hr: (twr as usize - 1) / 2,
+        hc: (twr as usize - 1) / 2,
+    };
+    let (i1, i2, eta_vp) = SIGMA_2009[(looks - 1) as usize][sigma_idx as usize];
+    let eta_v2 = 1.0 / looks as f64;
+    let eta_vp2 = eta_vp * eta_vp;
+    let edge = parse_edge(edge, edge_value);
+    let plane = d.nr * d.nc;
+    fill_out(x.len(), |out| {
+        for (layer, out_layer) in x.chunks(plane).zip(out.chunks_mut(plane)) {
+            if na_omit {
+                lee_sigma_improved_layer::<true>(
+                    layer, d, w, tw, i1, i2, eta_v2, eta_vp2, edge, out_layer,
+                );
+            } else {
+                lee_sigma_improved_layer::<false>(
+                    layer, d, w, tw, i1, i2, eta_v2, eta_vp2, edge, out_layer,
+                );
+            }
+        }
+    })
+}
+
 extendr_module! {
     mod speckle;
     fn rf_lee_rs;
@@ -447,4 +707,5 @@ extendr_module! {
     fn rf_gamma_map_rs;
     fn rf_frost_rs;
     fn rf_lee_sigma_rs;
+    fn rf_lee_sigma_improved_rs;
 }

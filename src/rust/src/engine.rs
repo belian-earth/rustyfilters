@@ -7,7 +7,7 @@
 //! output column across all layers, so the cache-friendly inner loop slides
 //! the window vertically down contiguous memory.
 
-use crate::threading::{get_num_threads, maybe_par};
+use crate::threading::maybe_par;
 use rayon::prelude::*;
 
 /// Out-of-bounds policy at the matrix edges.
@@ -239,25 +239,32 @@ pub fn run_scan<F, const NA_AWARE: bool>(
         let layer = &x[l * plane..(l + 1) * plane];
         scan_column::<F, NA_AWARE>(layer, d, w, edge, f, c, out_col, scratch);
     };
-    if get_num_threads() <= 1 {
-        let mut scratch = Vec::with_capacity(cap);
-        for (g, out_col) in out.chunks_mut(d.nr).enumerate() {
-            column(g, out_col, &mut scratch);
-        }
-    } else {
-        maybe_par(|| {
-            out.par_chunks_mut(d.nr).enumerate().for_each_init(
-                || Vec::with_capacity(cap),
-                |scratch, (g, out_col)| column(g, out_col, scratch),
-            );
-        });
-    }
+    maybe_par(|| {
+        out.par_chunks_mut(d.nr).enumerate().for_each_init(
+            || Vec::with_capacity(cap),
+            |scratch, (g, out_col)| column(g, out_col, scratch),
+        );
+    });
+}
+
+/// Drive a per-column worker over a stack of output columns, sequentially or
+/// on the rayon pool depending on the thread setting. `f(g, out_col)` gets
+/// the global column index `g` (layer = g / nc, column = g % nc).
+pub fn par_columns<F>(out: &mut [f64], nr: usize, f: F)
+where
+    F: Fn(usize, &mut [f64]) + Sync,
+{
+    maybe_par(|| {
+        out.par_chunks_mut(nr)
+            .enumerate()
+            .for_each(|(g, out_col)| f(g, out_col));
+    });
 }
 
 // ---------------------------------------------------------------------------
 // Moments fast path: separable sliding box sums, O(1) per pixel regardless of
 // window size. Used by every filter that only needs the window mean/variance
-// (mean, sum, sd, Lee, Kuan, enhanced Lee, Gamma-MAP).
+// (mean, sum, sd, Kuan, enhanced Lee, Gamma-MAP).
 //
 // Per rayon task: a ring buffer holds the vertical window sums of the last
 // `wc` source columns; an accumulator column holds the horizontal total. Both
@@ -502,7 +509,6 @@ pub fn run_moments<F, const NA_AWARE: bool>(
 {
     let plane = d.nr * d.nc;
     debug_assert!(plane > 0 && x.len() == out.len() && x.len() % plane == 0);
-    let threads = get_num_threads();
     // Fixed band width, independent of the thread count: the summation order
     // is then identical however the bands are scheduled, so results are
     // bitwise reproducible across thread settings. 64 columns keeps the ring
@@ -510,21 +516,14 @@ pub fn run_moments<F, const NA_AWARE: bool>(
     // floating-point drift.
     let band = 64.min(d.nc);
     for (layer_x, layer_out) in x.chunks(plane).zip(out.chunks_mut(plane)) {
-        let do_band = |b: usize, out_band: &mut [f64]| {
-            moments_band::<F, NA_AWARE>(layer_x, d, w, edge, f, b * band, out_band);
-        };
-        if threads <= 1 {
-            for (b, out_band) in layer_out.chunks_mut(band * d.nr).enumerate() {
-                do_band(b, out_band);
-            }
-        } else {
-            maybe_par(|| {
-                layer_out
-                    .par_chunks_mut(band * d.nr)
-                    .enumerate()
-                    .for_each(|(b, out_band)| do_band(b, out_band));
-            });
-        }
+        maybe_par(|| {
+            layer_out
+                .par_chunks_mut(band * d.nr)
+                .enumerate()
+                .for_each(|(b, out_band)| {
+                    moments_band::<F, NA_AWARE>(layer_x, d, w, edge, f, b * band, out_band);
+                });
+        });
     }
 }
 

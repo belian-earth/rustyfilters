@@ -26,19 +26,28 @@ reference:
   - rf_lee
   - rf_enhanced_lee
   - rf_lee_sigma
+  - rf_lee_sigma_improved
   - rf_frost
   - rf_kuan
   - rf_gamma_map
 - title: Smoothing
-  desc: Classic moving-window smoothers.
+  desc: Classic and edge-preserving moving-window smoothers.
   contents:
   - rf_mean
   - rf_gaussian
   - rf_median
+  - rf_bilateral
+  - rf_guided
 - title: Focal statistics
   desc: Window summaries beyond the mean.
   contents:
   - rf_focal
+- title: Convolution & edges
+  desc: Arbitrary kernels and gradient filters.
+  contents:
+  - rf_convolve
+  - rf_sobel
+  - rf_laplacian
 - title: Configuration
   desc: Multi-threading control.
   contents:

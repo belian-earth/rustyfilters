@@ -9,7 +9,11 @@ test_that("a 3-D array filters each layer like the matrix method", {
     function(x) rf_median(x, 3L, edge = "reflect"),
     function(x) rf_gaussian(x, sigma = 1),
     function(x) rf_lee(x, 5L),
-    function(x) rf_frost(x, 5L)
+    function(x) rf_frost(x, 5L),
+    function(x) rf_convolve(x, matrix(c(0, 1, 0, 1, -4, 1, 0, 1, 0), 3)),
+    function(x) rf_bilateral(x, sigma_d = 1, sigma_r = 1, window = 3L),
+    function(x) rf_guided(x, window = 3L, eps = 0.1),
+    function(x) rf_lee_sigma_improved(x, 5L)
   )) {
     out <- fn(a)
     expect_equal(dim(out), dim(a))
@@ -33,15 +37,19 @@ test_that("results are identical across thread counts", {
   withr::defer(rf_set_threads(rf_get_threads()))
   a <- array(stats::rnorm(7 * 9 * 2), c(7, 9, 2))
   a[c(3, 40, 90)] <- NA
+  all_filters <- function(a) {
+    list(
+      rf_mean(a, 5L), rf_focal(a, 3L, "median"),
+      rf_gaussian(a, sigma = 1), rf_lee(a, 5L), rf_frost(a, 3L),
+      rf_convolve(a, matrix(c(0, 1, 0, 1, -4, 1, 0, 1, 0), 3)),
+      rf_bilateral(a, sigma_d = 1, sigma_r = 1, window = 3L),
+      rf_guided(a, window = 3L, eps = 0.1),
+      rf_lee_sigma_improved(a, 5L)
+    )
+  }
   rf_set_threads(1L)
-  seq_out <- list(
-    rf_mean(a, 5L), rf_focal(a, 3L, "median"),
-    rf_gaussian(a, sigma = 1), rf_lee(a, 5L), rf_frost(a, 3L)
-  )
+  seq_out <- all_filters(a)
   rf_set_threads(4L)
-  par_out <- list(
-    rf_mean(a, 5L), rf_focal(a, 3L, "median"),
-    rf_gaussian(a, sigma = 1), rf_lee(a, 5L), rf_frost(a, 3L)
-  )
+  par_out <- all_filters(a)
   expect_identical(seq_out, par_out)
 })

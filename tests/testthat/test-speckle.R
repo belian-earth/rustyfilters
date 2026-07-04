@@ -195,6 +195,129 @@ test_that("propagate policy spreads NA over the whole window", {
   expect_false(is.na(out[1, 1]))
 })
 
+# Faithful R reference for the improved Lee sigma filter (shrink edges,
+# omit policy). Table rows: (i1, i2, eta_vp) from Lee et al. (2009).
+ref_lee_sigma_improved <- function(x, window, looks, sigma, target_window = 3L) {
+  tabs <- list(
+    `1` = rbind(
+      `0.9` = c(0.084, 3.941, 0.8191),
+      `0.5` = c(0.436, 1.920, 0.4057)
+    ),
+    `2` = rbind(`0.7` = c(0.418, 1.972, 0.4062))
+  )
+  p <- tabs[[as.character(looks)]][as.character(sigma), ]
+  i1 <- p[1]
+  i2 <- p[2]
+  etavp2 <- p[3]^2
+  etav2 <- 1 / looks
+  vals <- sort(x[!is.na(x)])
+  n <- length(vals)
+  z98 <- vals[min(max(floor(n * 0.98), 1L), n)]
+  nr <- nrow(x)
+  nc <- ncol(x)
+  th <- (target_window - 1L) %/% 2L
+  tw <- c(target_window, target_window)
+  det <- matrix(FALSE, nr, nc)
+  for (cc in seq_len(nc)) {
+    for (rr in seq_len(nr)) {
+      v0 <- x[rr, cc]
+      if (is.na(v0) || v0 <= z98) next
+      win <- ref_window(x, rr, cc, tw, "shrink", 0)
+      if (sum(win > z98, na.rm = TRUE) > 5) det[rr, cc] <- TRUE
+    }
+  }
+  tgt <- matrix(FALSE, nr, nc)
+  for (cc in seq_len(nc)) {
+    for (rr in seq_len(nr)) {
+      v0 <- x[rr, cc]
+      if (is.na(v0) || v0 <= z98) next
+      near <- det[
+        max(1, rr - th):min(nr, rr + th),
+        max(1, cc - th):min(nc, cc + th)
+      ]
+      if (any(near)) tgt[rr, cc] <- TRUE
+    }
+  }
+  mmse <- function(v, x0, eta2) {
+    m <- mean(v)
+    if (length(v) < 2) return(m)
+    vy <- stats::var(v)
+    if (vy == 0) return(m)
+    b <- max((vy - m^2 * eta2) / (1 + eta2), 0) / vy
+    (1 - b) * m + b * x0
+  }
+  out <- matrix(NA_real_, nr, nc)
+  for (cc in seq_len(nc)) {
+    for (rr in seq_len(nr)) {
+      x0 <- x[rr, cc]
+      if (is.na(x0)) next
+      if (tgt[rr, cc]) {
+        out[rr, cc] <- x0
+        next
+      }
+      tv <- ref_window(x, rr, cc, tw, "shrink", 0)
+      est <- mmse(tv[!is.na(tv)], x0, etav2)
+      fv <- ref_window(x, rr, cc, rep(window, length.out = 2L), "shrink", 0)
+      fv <- fv[!is.na(fv)]
+      sel <- fv[fv >= est * i1 & fv <= est * i2]
+      out[rr, cc] <- if (length(sel) == 0) x0 else mmse(sel, x0, etavp2)
+    }
+  }
+  out
+}
+
+test_that("improved Lee sigma matches its reference", {
+  m <- speckled_scene(nr = 15, nc = 16)
+  expect_equal(
+    rf_lee_sigma_improved(m, window = 7L, looks = 1, sigma = 0.9),
+    ref_lee_sigma_improved(m, 7L, 1, 0.9)
+  )
+  expect_equal(
+    rf_lee_sigma_improved(m, window = 5L, looks = 2, sigma = 0.7),
+    ref_lee_sigma_improved(m, 5L, 2, 0.7)
+  )
+  expect_equal(
+    rf_lee_sigma_improved(m, window = 7L, looks = 1, sigma = 0.5,
+                          target_window = 5L),
+    ref_lee_sigma_improved(m, 7L, 1, 0.5, target_window = 5L)
+  )
+})
+
+test_that("improved Lee sigma matches its reference with NAs", {
+  m <- speckled_scene(nr = 15, nc = 16, na = 12)
+  out <- rf_lee_sigma_improved(m, window = 7L, looks = 1, sigma = 0.9)
+  expect_equal(out, ref_lee_sigma_improved(m, 7L, 1, 0.9))
+  expect_true(all(is.na(out[is.na(m)])))
+})
+
+test_that("improved Lee sigma preserves bright point-target clusters", {
+  withr::with_seed(5, m <- matrix(rexp(2500, rate = 10), 50, 50))
+  m[20:22, 30:32] <- 1000
+  out <- rf_lee_sigma_improved(m, window = 7L, looks = 1)
+  expect_equal(out[20:22, 30:32], m[20:22, 30:32])
+  # A moderately bright isolated pixel is not a cluster and gets filtered
+  # down. (An extreme isolated spike keeps itself: it inflates its own a
+  # priori estimate until the sigma range excludes everything else, which
+  # matches the reference implementation.)
+  m2 <- m
+  m2[20:22, 30:32] <- m[5, 5]
+  m2[40, 40] <- 3
+  out2 <- rf_lee_sigma_improved(m2, window = 7L, looks = 1)
+  expect_lt(out2[40, 40], 3)
+})
+
+test_that("improved Lee sigma leaves a constant field unchanged", {
+  m <- matrix(4, 10, 10)
+  expect_equal(rf_lee_sigma_improved(m, window = 5L), m)
+})
+
+test_that("improved Lee sigma validates its parameters", {
+  m <- speckled_scene(nr = 5, nc = 5)
+  expect_error(rf_lee_sigma_improved(m, looks = 5), "1, 2, 3 or 4")
+  expect_error(rf_lee_sigma_improved(m, sigma = 0.55), "must be one of")
+  expect_error(rf_lee_sigma_improved(m, target_window = 2L), "odd integer")
+})
+
 test_that("speckle parameters are validated", {
   m <- speckled_scene(nr = 5, nc = 5)
   expect_error(rf_lee(m, looks = 0), "positive")

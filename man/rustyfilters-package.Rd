@@ -16,6 +16,7 @@ extendr with multi-threading from rayon.
 \item \code{\link[=rf_lee]{rf_lee()}} --- Lee (1980) minimum mean-square-error filter
 \item \code{\link[=rf_enhanced_lee]{rf_enhanced_lee()}} --- enhanced Lee (Lopes et al. 1990)
 \item \code{\link[=rf_lee_sigma]{rf_lee_sigma()}} --- Lee sigma (1983) two-sigma filter
+\item \code{\link[=rf_lee_sigma_improved]{rf_lee_sigma_improved()}} --- improved Lee sigma (Lee et al. 2009)
 \item \code{\link[=rf_frost]{rf_frost()}} --- Frost (1982) damped exponential filter
 \item \code{\link[=rf_kuan]{rf_kuan()}} --- Kuan (1985) filter
 \item \code{\link[=rf_gamma_map]{rf_gamma_map()}} --- Gamma maximum a posteriori (Lopes et al. 1990)
@@ -28,6 +29,8 @@ extendr with multi-threading from rayon.
 \item \code{\link[=rf_mean]{rf_mean()}} --- moving-window (boxcar) mean
 \item \code{\link[=rf_gaussian]{rf_gaussian()}} --- separable Gaussian blur
 \item \code{\link[=rf_median]{rf_median()}} --- moving-window median
+\item \code{\link[=rf_bilateral]{rf_bilateral()}} --- bilateral edge-preserving smoother
+\item \code{\link[=rf_guided]{rf_guided()}} --- guided filter (He et al. 2013)
 }
 }
 
@@ -36,6 +39,15 @@ extendr with multi-threading from rayon.
 \itemize{
 \item \code{\link[=rf_focal]{rf_focal()}} --- min, max, range, standard deviation, sum, mode and
 friends over a moving window
+}
+}
+
+\section{Convolution and edges}{
+
+\itemize{
+\item \code{\link[=rf_convolve]{rf_convolve()}} --- arbitrary kernel filtering
+\item \code{\link[=rf_sobel]{rf_sobel()}} --- Sobel gradient
+\item \code{\link[=rf_laplacian]{rf_laplacian()}} --- discrete Laplacian
 }
 }
 

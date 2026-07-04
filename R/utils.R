@@ -57,6 +57,21 @@ check_count_scalar <- function(x, arg = rlang::caller_arg(x),
   x
 }
 
+# A numeric kernel matrix with odd dimensions and finite weights.
+check_kernel <- function(kernel, call = rlang::caller_env()) {
+  ok <- is.matrix(kernel) && is.numeric(kernel) &&
+    all(dim(kernel) %% 2L == 1L) && all(is.finite(kernel))
+  if (!ok) {
+    cli::cli_abort(
+      "{.arg kernel} must be a numeric matrix with odd dimensions and no
+       missing values.",
+      call = call
+    )
+  }
+  storage.mode(kernel) <- "double"
+  kernel
+}
+
 # A single number used to pad the `constant` edge policy; NA is allowed and
 # behaves as missing data under `na_policy = "omit"`.
 check_edge_value <- function(edge_value, call = rlang::caller_env()) {

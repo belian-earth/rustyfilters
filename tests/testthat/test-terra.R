@@ -37,6 +37,37 @@ test_that("SpatRaster values match the array method", {
   }
 })
 
+test_that("round-2 filters have working SpatRaster methods", {
+  r <- demo_rast(nlyr = 2, na = 4)
+  a <- terra::as.array(r)
+  k <- matrix(c(0, 1, 0, 1, -4, 1, 0, 1, 0), 3)
+  expect_equal(terra::as.array(rf_convolve(r, k)), rf_convolve(a, k))
+  expect_equal(terra::as.array(rf_sobel(r)), rf_sobel(a))
+  expect_equal(terra::as.array(rf_laplacian(r)), rf_laplacian(a))
+  expect_equal(
+    terra::as.array(rf_bilateral(r, sigma_d = 1, sigma_r = 1, window = 3L)),
+    rf_bilateral(a, sigma_d = 1, sigma_r = 1, window = 3L)
+  )
+  expect_equal(
+    terra::as.array(rf_lee_sigma_improved(r, 5L)),
+    rf_lee_sigma_improved(a, 5L)
+  )
+})
+
+test_that("rf_guided accepts a SpatRaster guide", {
+  r <- demo_rast(nlyr = 1)
+  g <- demo_rast(nlyr = 1)
+  g <- g * 2
+  out <- rf_guided(r, guide = g, window = 3L, eps = 0.1)
+  expect_equal(
+    terra::as.array(out),
+    rf_guided(terra::as.array(r),
+      guide = terra::as.array(g),
+      window = 3L, eps = 0.1
+    )
+  )
+})
+
 test_that("filter arguments pass through to the SpatRaster method", {
   r <- demo_rast()
   a <- terra::as.array(r)

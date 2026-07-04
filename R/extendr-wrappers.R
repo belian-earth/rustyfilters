@@ -5,6 +5,16 @@
 #' @useDynLib rustyfilters, .registration = TRUE
 NULL
 
+#' Bilateral filter over a stack of column-major layers.
+#' @noRd
+#' @keywords internal
+rf_bilateral_rs <- function(x, nr, nc, nl, wr, wc, sigma_d, sigma_r, edge, edge_value, na_omit) .Call(wrap__rf_bilateral_rs, x, nr, nc, nl, wr, wc, sigma_d, sigma_r, edge, edge_value, na_omit)
+
+#' Apply a kernel (column-major, `wr x wc`) over a stack of layers.
+#' @noRd
+#' @keywords internal
+rf_convolve_rs <- function(x, nr, nc, nl, wr, wc, kernel, normalize, edge, edge_value, na_omit) .Call(wrap__rf_convolve_rs, x, nr, nc, nl, wr, wc, kernel, normalize, edge, edge_value, na_omit)
+
 #' Focal statistic over a stack of column-major layers.
 #' @noRd
 #' @keywords internal
@@ -14,6 +24,12 @@ rf_focal_rs <- function(x, nr, nc, nl, wr, wc, stat, edge, edge_value, na_omit) 
 #' @noRd
 #' @keywords internal
 rf_gaussian_rs <- function(x, nr, nc, nl, wr, wc, sigma, edge, edge_value, na_omit) .Call(wrap__rf_gaussian_rs, x, nr, nc, nl, wr, wc, sigma, edge, edge_value, na_omit)
+
+#' Guided filter over a stack of column-major layers. `guide` must have the
+#' same length as `x` (pass `x` itself for self-guidance).
+#' @noRd
+#' @keywords internal
+rf_guided_rs <- function(x, nr, nc, nl, wr, wc, guide, eps, edge, edge_value, na_omit) .Call(wrap__rf_guided_rs, x, nr, nc, nl, wr, wc, guide, eps, edge, edge_value, na_omit)
 
 #' Lee (1980): minimum mean-square-error linear estimator.
 #' `W = v / (v + (m * cu)^2)`, `out = m + W * (x - m)`.
@@ -52,6 +68,13 @@ rf_frost_rs <- function(x, nr, nc, nl, wr, wc, damping, edge, edge_value, na_omi
 #' @noRd
 #' @keywords internal
 rf_lee_sigma_rs <- function(x, nr, nc, nl, wr, wc, looks, k, min_count, edge, edge_value, na_omit) .Call(wrap__rf_lee_sigma_rs, x, nr, nc, nl, wr, wc, looks, k, min_count, edge, edge_value, na_omit)
+
+#' Improved Lee sigma (Lee et al. 2009) over a stack of column-major layers.
+#' `sigma_idx` indexes 0.5-0.9; `looks` must be 1-4; `twr`/`twc` give the
+#' target window.
+#' @noRd
+#' @keywords internal
+rf_lee_sigma_improved_rs <- function(x, nr, nc, nl, wr, wc, looks, sigma_idx, twr, edge, edge_value, na_omit) .Call(wrap__rf_lee_sigma_improved_rs, x, nr, nc, nl, wr, wc, looks, sigma_idx, twr, edge, edge_value, na_omit)
 
 #' @noRd
 #' @keywords internal

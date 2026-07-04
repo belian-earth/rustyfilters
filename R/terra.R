@@ -72,3 +72,42 @@ rf_median.SpatRaster <- function(x, ...) {
 rf_focal.SpatRaster <- function(x, ...) {
   filter_spatraster(x, rf_focal, ...)
 }
+
+#' @rdname rf_convolve
+#' @export
+rf_convolve.SpatRaster <- function(x, ...) {
+  filter_spatraster(x, rf_convolve, ...)
+}
+
+#' @rdname rf_sobel
+#' @export
+rf_sobel.SpatRaster <- function(x, ...) {
+  filter_spatraster(x, rf_sobel, ...)
+}
+
+#' @rdname rf_laplacian
+#' @export
+rf_laplacian.SpatRaster <- function(x, ...) {
+  filter_spatraster(x, rf_laplacian, ...)
+}
+
+#' @rdname rf_bilateral
+#' @export
+rf_bilateral.SpatRaster <- function(x, ...) {
+  filter_spatraster(x, rf_bilateral, ...)
+}
+
+#' @rdname rf_guided
+#' @export
+rf_guided.SpatRaster <- function(x, guide = NULL, ...) {
+  if (inherits(guide, "SpatRaster")) {
+    guide <- terra::as.array(guide)
+  }
+  filter_spatraster(x, rf_guided, guide = guide, ...)
+}
+
+#' @rdname rf_lee_sigma_improved
+#' @export
+rf_lee_sigma_improved.SpatRaster <- function(x, ...) {
+  filter_spatraster(x, rf_lee_sigma_improved, ...)
+}

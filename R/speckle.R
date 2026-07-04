@@ -326,3 +326,97 @@ rf_gamma_map.default <- function(x, ...) {
      not {.obj_type_friendly {x}}."
   )
 }
+
+#' Improved Lee sigma speckle filter
+#'
+#' The improved sigma filter of Lee et al. (2009), as popularised by ESA
+#' SNAP. It addresses the classic sigma filter's dark bias by (1) estimating
+#' an a priori mean with a small MMSE filter and using published sigma range
+#' bounds around it, (2) preserving point targets, detected as clusters of
+#' pixels above the scene's 98th percentile, and (3) filtering the in-range
+#' pixels with an MMSE weight based on a revised speckle variation
+#' coefficient.
+#'
+#' @inheritParams rf_lee
+#' @inherit rf_params return
+#' @param looks Effective number of looks. Must be 1, 2, 3 or 4; the
+#'   published sigma range tables only cover these.
+#' @param sigma Sigma confidence level: one of 0.5, 0.6, 0.7, 0.8 or 0.9
+#'   (the default, covering the widest speckle range).
+#' @param target_window Single odd integer (typically 3 or 5): the window
+#'   used for the a priori mean estimate and for point-target detection.
+#' @details
+#' Point-target marking is order-independent here: a pixel is preserved when
+#' it exceeds the layer's 98th percentile and lies within `target_window` of
+#' a cluster of more than five such pixels. SNAP marks clusters during a
+#' sequential scan, which can differ at cluster fringes. The 98th percentile
+#' is computed per layer over valid cells.
+#' @references Lee, J.-S., Wen, J.-H., Ainsworth, T. L., Chen, K.-S., &
+#'   Chen, A. J. (2009). Improved sigma filter for speckle filtering of SAR
+#'   imagery. *IEEE Transactions on Geoscience and Remote Sensing*, 47(1),
+#'   202-213.
+#' @seealso [rf_lee_sigma()] for the classic 1983 filter, [rf_lee()],
+#'   [rf_enhanced_lee()]
+#' @examples
+#' set.seed(1)
+#' speckled <- matrix(rexp(400), 20, 20)
+#' rf_lee_sigma_improved(speckled, window = 7L, looks = 1, sigma = 0.9)
+#' @export
+rf_lee_sigma_improved <- function(x, ...) {
+  UseMethod("rf_lee_sigma_improved")
+}
+
+#' @rdname rf_lee_sigma_improved
+#' @export
+rf_lee_sigma_improved.matrix <- function(x, window = 7L, looks = 1,
+                                         sigma = 0.9, target_window = 3L,
+                                         edge = c("shrink", "reflect", "nearest", "constant"),
+                                         edge_value = 0,
+                                         na_policy = c("omit", "propagate"),
+                                         ...) {
+  edge <- rlang::arg_match(edge)
+  na_policy <- rlang::arg_match(na_policy)
+  looks <- vctrs::vec_cast(looks, integer())
+  if (length(looks) != 1L || is.na(looks) || !looks %in% 1:4) {
+    cli::cli_abort(
+      "{.arg looks} must be 1, 2, 3 or 4 (the published sigma range tables
+       cover these)."
+    )
+  }
+  sigma_levels <- c(0.5, 0.6, 0.7, 0.8, 0.9)
+  sigma_idx <- match(TRUE, vapply(
+    sigma_levels,
+    function(s) isTRUE(all.equal(s, sigma)),
+    logical(1)
+  ))
+  if (length(sigma) != 1L || is.na(sigma_idx)) {
+    cli::cli_abort(
+      "{.arg sigma} must be one of {.val {sigma_levels}}."
+    )
+  }
+  target_window <- vctrs::vec_cast(target_window, integer())
+  ok <- length(target_window) == 1L && !is.na(target_window) &&
+    target_window >= 3L && target_window %% 2L == 1L
+  if (!ok) {
+    cli::cli_abort(
+      "{.arg target_window} must be a single odd integer >= 3."
+    )
+  }
+  rf_dispatch(
+    x, rf_lee_sigma_improved_rs, list(looks, sigma_idx - 1L, target_window),
+    window, edge, edge_value, na_policy
+  )
+}
+
+#' @rdname rf_lee_sigma_improved
+#' @export
+rf_lee_sigma_improved.array <- rf_lee_sigma_improved.matrix
+
+#' @rdname rf_lee_sigma_improved
+#' @export
+rf_lee_sigma_improved.default <- function(x, ...) {
+  cli::cli_abort(
+    "{.arg x} must be a numeric matrix or 3-D array,
+     not {.obj_type_friendly {x}}."
+  )
+}

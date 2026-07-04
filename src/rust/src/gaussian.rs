@@ -10,7 +10,7 @@
 
 use crate::engine::{map_idx, Dims, Edge};
 use crate::focal::{check_geom, fill_out, parse_edge};
-use crate::threading::{get_num_threads, maybe_par};
+use crate::threading::maybe_par;
 use extendr_api::prelude::*;
 use rayon::prelude::*;
 
@@ -176,58 +176,31 @@ fn gaussian_impl<const NA_AWARE: bool>(
     out: &mut [f64],
 ) {
     let plane = d.nr * d.nc;
-    let seq = get_num_threads() <= 1;
     let vmarg = marginal_sums(d.nr, kr);
     let hmarg = marginal_sums(d.nc, kc);
     let mut tx = vec![0.0; plane];
     let mut tm = vec![0.0; if NA_AWARE { plane } else { 0 }];
-    // In the fast path the mask pass is skipped; give conv_col a scratch row
-    // so the write target exists without a branch in the hot loop.
-    let mut tm_dummy = vec![0.0; if NA_AWARE { 0 } else { d.nr }];
     for (layer_x, layer_out) in x.chunks(plane).zip(out.chunks_mut(plane)) {
         // Pass 1: vertical, one task per column.
         if NA_AWARE {
-            let cols = tx.chunks_mut(d.nr).zip(tm.chunks_mut(d.nr)).enumerate();
-            if seq {
-                for (c, (txc, tmc)) in cols {
-                    conv_col::<NA_AWARE>(
-                        &layer_x[c * d.nr..(c + 1) * d.nr],
-                        d.nr,
-                        kr,
-                        edge,
-                        txc,
-                        tmc,
-                    );
-                }
-            } else {
-                maybe_par(|| {
-                    tx.par_chunks_mut(d.nr)
-                        .zip(tm.par_chunks_mut(d.nr))
-                        .enumerate()
-                        .for_each(|(c, (txc, tmc))| {
-                            conv_col::<NA_AWARE>(
-                                &layer_x[c * d.nr..(c + 1) * d.nr],
-                                d.nr,
-                                kr,
-                                edge,
-                                txc,
-                                tmc,
-                            );
-                        });
-                });
-            }
-        } else if seq {
-            for (c, txc) in tx.chunks_mut(d.nr).enumerate() {
-                conv_col::<NA_AWARE>(
-                    &layer_x[c * d.nr..(c + 1) * d.nr],
-                    d.nr,
-                    kr,
-                    edge,
-                    txc,
-                    &mut tm_dummy,
-                );
-            }
+            maybe_par(|| {
+                tx.par_chunks_mut(d.nr)
+                    .zip(tm.par_chunks_mut(d.nr))
+                    .enumerate()
+                    .for_each(|(c, (txc, tmc))| {
+                        conv_col::<NA_AWARE>(
+                            &layer_x[c * d.nr..(c + 1) * d.nr],
+                            d.nr,
+                            kr,
+                            edge,
+                            txc,
+                            tmc,
+                        );
+                    });
+            });
         } else {
+            // The fast path skips the mask; conv_col still needs a write
+            // target, so each task carries a scratch row.
             maybe_par(|| {
                 tx.par_chunks_mut(d.nr).enumerate().for_each_init(
                     || vec![0.0; d.nr],
@@ -245,21 +218,14 @@ fn gaussian_impl<const NA_AWARE: bool>(
             });
         }
         // Pass 2: horizontal + divide, one task per output column.
-        let finish = |c: usize, out_col: &mut [f64]| {
-            finish_col::<NA_AWARE>(&tx, &tm, d, kc, edge, c, &vmarg, &hmarg, out_col);
-        };
-        if seq {
-            for (c, out_col) in layer_out.chunks_mut(d.nr).enumerate() {
-                finish(c, out_col);
-            }
-        } else {
-            maybe_par(|| {
-                layer_out
-                    .par_chunks_mut(d.nr)
-                    .enumerate()
-                    .for_each(|(c, out_col)| finish(c, out_col));
-            });
-        }
+        maybe_par(|| {
+            layer_out
+                .par_chunks_mut(d.nr)
+                .enumerate()
+                .for_each(|(c, out_col)| {
+                    finish_col::<NA_AWARE>(&tx, &tm, d, kc, edge, c, &vmarg, &hmarg, out_col);
+                });
+        });
     }
 }
 
