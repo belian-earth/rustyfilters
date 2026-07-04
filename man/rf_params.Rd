@@ -5,7 +5,12 @@
 \title{Common filter parameters}
 \arguments{
 \item{x}{A numeric matrix or 3-D array (filtered layer by layer). Methods
-for terra \code{SpatRaster} objects are provided when terra is installed.}
+are also provided for terra \code{SpatRaster} objects (when terra is
+installed) and for open gdalraster \code{GDALRaster} datasets (when
+gdalraster is installed). \code{GDALRaster} methods read the dataset into
+memory, filter it, and return a new \code{GDALRaster} object open in update
+mode on a Float64 dataset with the source's geometry: an in-memory
+\verb{/vsimem} GTiff by default, or pass \code{filename} to write to disk.}
 
 \item{window}{Window size in cells: a single odd positive integer, or a
 pair \code{c(rows, cols)} of odd positive integers.}

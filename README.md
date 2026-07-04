@@ -11,16 +11,20 @@ coverage](https://codecov.io/gh/belian-earth/rustyfilters/graph/badge.svg)](http
 [![License](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 <!-- badges: end -->
 
-Minimal, blazing-fast moving-window filters for R matrices, 3-D arrays
-and terra `SpatRaster` objects, powered by Rust and rayon.
+Minimal, blazing-fast moving-window filters for R matrices and 3-D
+arrays, with methods for terra `SpatRaster` and gdalraster `GDALRaster`
+objects, powered by Rust and rayon.
 
 - **Speckle filters** for SAR intensity data: `rf_lee()`,
-  `rf_enhanced_lee()`, `rf_lee_sigma()`, `rf_frost()`, `rf_kuan()`,
-  `rf_gamma_map()`.
+  `rf_enhanced_lee()`, `rf_lee_sigma()`, `rf_lee_sigma_improved()` (Lee
+  et al. 2009, SNAP-style), `rf_frost()`, `rf_kuan()`, `rf_gamma_map()`.
 - **Smoothing**: `rf_mean()` (boxcar), `rf_gaussian()` (separable),
-  `rf_median()`.
+  `rf_median()`, plus the edge-preserving `rf_bilateral()` and
+  `rf_guided()` (He et al. 2013, window-size-independent cost).
 - **Focal statistics**: `rf_focal()` with min, max, range, sd, sum,
   mode.
+- **Convolution and edges**: `rf_convolve()` with arbitrary kernels,
+  `rf_sobel()`, `rf_laplacian()`.
 - **Parallel by default**: all cores on load; tune with
   `rf_set_threads()`. Results are bitwise identical whatever the thread
   count.
@@ -90,7 +94,7 @@ rf_gaussian(m, sigma = 1)
 #> [5,] 7.077675 10.124779 14.48058 18.83638 21.88349
 ```
 
-### terra
+### terra and gdalraster
 
 `SpatRaster` methods are available whenever terra is installed (the
 raster is materialised in memory, filtered layer by layer, and rebuilt
@@ -110,6 +114,26 @@ rf_median(r, window = 5L)
 #> max value   :     537.5
 ```
 
+Open gdalraster `GDALRaster` datasets work the same way: the result is a
+new `GDALRaster` object on a Float64 dataset with the source’s geometry,
+in-memory (`/vsimem`) by default or on disk via `filename`:
+
+``` r
+f <- system.file("extdata/storml_elev.tif", package = "gdalraster")
+ds <- new(gdalraster::GDALRaster, f)
+smoothed <- rf_median(ds, window = 5L)
+smoothed
+#> C++ object of class <GDALRaster>
+#> • Driver: GeoTIFF (GTiff)
+#> • DSN: "/vsimem/rustyfilters_51bf42fa4b728.tif"
+#> • Dimensions: 143, 107, 1
+#> • CRS: NAD83 / UTM zone 12N (EPSG:26912)
+#> • Pixel resolution: 30.000000, 30.000000
+#> • Bbox: 323476.071971, 5101871.983031, 327766.071971, 5105081.983031
+smoothed$close()
+ds$close()
+```
+
 ### Threads
 
 Everything runs on all cores by default. Control it globally:
@@ -126,10 +150,6 @@ before loading to change the startup default.
 
 ## Roadmap
 
-- Generic convolution (`rf_convolve()`), Sobel and Laplacian edge
-  filters
-- Bilateral and guided edge-preserving smoothers
-- Improved Lee sigma (Lee et al. 2009)
 - Histogram/van Herk O(1) median, min and max
 
 ## Acknowledgements

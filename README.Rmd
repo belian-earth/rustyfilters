@@ -21,8 +21,9 @@ knitr::opts_chunk$set(
 [![License](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 <!-- badges: end -->
 
-Minimal, blazing-fast moving-window filters for R matrices, 3-D arrays and
-terra `SpatRaster` objects, powered by Rust and rayon.
+Minimal, blazing-fast moving-window filters for R matrices and 3-D arrays,
+with methods for terra `SpatRaster` and gdalraster `GDALRaster` objects,
+powered by Rust and rayon.
 
 - **Speckle filters** for SAR intensity data: `rf_lee()`,
   `rf_enhanced_lee()`, `rf_lee_sigma()`, `rf_lee_sigma_improved()` (Lee et
@@ -84,7 +85,7 @@ rf_focal(m, window = 3L, stat = "sd")
 rf_gaussian(m, sigma = 1)
 ```
 
-### terra
+### terra and gdalraster
 
 `SpatRaster` methods are available whenever terra is installed (the raster
 is materialised in memory, filtered layer by layer, and rebuilt with its
@@ -93,6 +94,19 @@ geometry):
 ```{r terra, eval = requireNamespace("terra", quietly = TRUE)}
 r <- terra::rast(system.file("ex/elev.tif", package = "terra"))
 rf_median(r, window = 5L)
+```
+
+Open gdalraster `GDALRaster` datasets work the same way: the result is a
+new `GDALRaster` object on a Float64 dataset with the source's geometry,
+in-memory (`/vsimem`) by default or on disk via `filename`:
+
+```{r gdalraster, eval = requireNamespace("gdalraster", quietly = TRUE)}
+f <- system.file("extdata/storml_elev.tif", package = "gdalraster")
+ds <- new(gdalraster::GDALRaster, f)
+smoothed <- rf_median(ds, window = 5L)
+smoothed
+smoothed$close()
+ds$close()
 ```
 
 ### Threads
@@ -111,7 +125,6 @@ loading to change the startup default.
 ## Roadmap
 
 - Histogram/van Herk O(1) median, min and max
-- gdalraster support
 
 ## Acknowledgements
 

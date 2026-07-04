@@ -4,12 +4,14 @@ Version: 0.0.0.9000
 Authors@R:
     person("Hugh", "Graham", , "hugh@belian.earth", role = c("aut", "cre"))
 Description: Minimal, high-performance moving-window filters for numeric
-    matrices, 3-D arrays and, optionally, 'terra' SpatRaster objects.
-    Provides SAR speckle filters (Lee, enhanced Lee, Lee sigma, Frost,
-    Kuan, Gamma-MAP) and focal statistics (mean, Gaussian, median, min,
-    max, range, standard deviation, sum, mode), each with an NA-aware
-    default and a documented fast path, multi-threaded via 'Rust' and
-    'rayon'.
+    matrices, 3-D arrays and, optionally, 'terra' SpatRaster and
+    'gdalraster' GDALRaster objects. Provides SAR speckle filters (Lee,
+    enhanced Lee, Lee sigma classic and improved, Frost, Kuan, Gamma-MAP),
+    smoothing and edge-preserving filters (mean, Gaussian, median,
+    bilateral, guided), focal statistics (min, max, range, standard
+    deviation, sum, mode) and kernel convolution (including Sobel and
+    Laplacian), each with an NA-aware default and a documented fast path,
+    multi-threaded via 'Rust' and 'rayon'.
 License: Apache License (>= 2)
 URL: https://github.com/belian-earth/rustyfilters, https://belian-earth.github.io/rustyfilters/
 BugReports: https://github.com/belian-earth/rustyfilters/issues
@@ -17,9 +19,11 @@ Depends:
     R (>= 4.2)
 Imports:
     cli,
+    methods,
     rlang (>= 1.1.0),
     vctrs (>= 0.6.0)
 Suggests:
+    gdalraster,
     knitr,
     rmarkdown,
     terra,

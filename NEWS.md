@@ -1,5 +1,9 @@
 # rustyfilters 0.0.0.9000
 
+* All filters gained methods for open gdalraster `GDALRaster` datasets
+  (gdalraster in Suggests): results are returned as a new `GDALRaster`
+  object on an in-memory `/vsimem` GTiff, or written to `filename`.
+
 * Added convolution and gradient filters (`rf_convolve()`, `rf_sobel()`,
   `rf_laplacian()`), edge-preserving smoothers (`rf_bilateral()`,
   `rf_guided()`) and the improved Lee sigma speckle filter of Lee et
