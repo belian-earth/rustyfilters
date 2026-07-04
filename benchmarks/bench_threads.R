@@ -8,9 +8,9 @@ n <- 4000L
 set.seed(42)
 m <- matrix(rnorm(n * n), n, n)
 
-time_med <- function(expr, reps = 3L) {
+time_med <- function(f, reps = 3L) {
   t <- vapply(seq_len(reps), function(i) {
-    system.time(force(expr))[["elapsed"]]
+    system.time(f())[["elapsed"]]
   }, numeric(1))
   stats::median(t)
 }
@@ -22,8 +22,8 @@ cat(sprintf("matrix %d x %d\n\n", n, n))
 base <- NULL
 for (nt in threads) {
   rf_set_threads(nt)
-  t_mean <- time_med(rf_mean(m, 7L, na_policy = "propagate"))
-  t_med <- time_med(rf_median(m, 7L, na_policy = "propagate"))
+  t_mean <- time_med(function() rf_mean(m, 7L, na_policy = "propagate"))
+  t_med <- time_med(function() rf_median(m, 7L, na_policy = "propagate"))
   if (is.null(base)) base <- c(t_mean, t_med)
   cat(sprintf(
     "%2d threads | mean %.3fs (%.1fx) | median %.3fs (%.1fx)\n",

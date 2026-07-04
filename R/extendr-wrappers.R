@@ -21,7 +21,7 @@ rf_gaussian_rs <- function(x, nr, nc, nl, wr, wc, sigma, edge, edge_value, na_om
 #' @keywords internal
 rf_lee_rs <- function(x, nr, nc, nl, wr, wc, looks, edge, edge_value, na_omit) .Call(wrap__rf_lee_rs, x, nr, nc, nl, wr, wc, looks, edge, edge_value, na_omit)
 
-#' Kuan (1985): `W = (1 - cu^2 / ci^2) / (1 + cu^2)` clamped to [0, 1].
+#' Kuan (1985): `W = (1 - cu^2 / ci^2) / (1 + cu^2)` clamped to `[0, 1]`.
 #' @noRd
 #' @keywords internal
 rf_kuan_rs <- function(x, nr, nc, nl, wr, wc, looks, edge, edge_value, na_omit) .Call(wrap__rf_kuan_rs, x, nr, nc, nl, wr, wc, looks, edge, edge_value, na_omit)

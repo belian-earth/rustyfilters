@@ -54,8 +54,13 @@ fn rf_lee_rs(
     let edge = parse_edge(edge, edge_value);
     let cu2 = 1.0 / looks;
     fill_out(x.len(), |out| {
-        run_stat_m(x, d, w, edge, na_omit, |x0, m| {
-            match local_stats(x0, &m) {
+        run_stat_m(
+            x,
+            d,
+            w,
+            edge,
+            na_omit,
+            |x0, m| match local_stats(x0, &m) {
                 None => NAN,
                 Some((mean, v)) => {
                     let noise = mean * mean * cu2;
@@ -65,12 +70,13 @@ fn rf_lee_rs(
                     let wgt = v / (v + noise);
                     mean + wgt * (x0 - mean)
                 }
-            }
-        }, out);
+            },
+            out,
+        );
     })
 }
 
-/// Kuan (1985): `W = (1 - cu^2 / ci^2) / (1 + cu^2)` clamped to [0, 1].
+/// Kuan (1985): `W = (1 - cu^2 / ci^2) / (1 + cu^2)` clamped to `[0, 1]`.
 /// @noRd
 /// @keywords internal
 #[extendr]
@@ -91,8 +97,13 @@ fn rf_kuan_rs(
     let edge = parse_edge(edge, edge_value);
     let cu2 = 1.0 / looks;
     fill_out(x.len(), |out| {
-        run_stat_m(x, d, w, edge, na_omit, |x0, m| {
-            match local_stats(x0, &m) {
+        run_stat_m(
+            x,
+            d,
+            w,
+            edge,
+            na_omit,
+            |x0, m| match local_stats(x0, &m) {
                 None => NAN,
                 Some((mean, v)) => {
                     if mean == 0.0 || v == 0.0 {
@@ -102,8 +113,9 @@ fn rf_kuan_rs(
                     let wgt = ((1.0 - cu2 / ci2) / (1.0 + cu2)).clamp(0.0, 1.0);
                     mean + wgt * (x0 - mean)
                 }
-            }
-        }, out);
+            },
+            out,
+        );
     })
 }
 
@@ -131,8 +143,13 @@ fn rf_enhanced_lee_rs(
     let cu = (1.0 / looks).sqrt();
     let cmax = (1.0 + 2.0 / looks).sqrt();
     fill_out(x.len(), |out| {
-        run_stat_m(x, d, w, edge, na_omit, |x0, m| {
-            match local_stats(x0, &m) {
+        run_stat_m(
+            x,
+            d,
+            w,
+            edge,
+            na_omit,
+            |x0, m| match local_stats(x0, &m) {
                 None => NAN,
                 Some((mean, v)) => {
                     if mean == 0.0 {
@@ -148,8 +165,9 @@ fn rf_enhanced_lee_rs(
                         x0
                     }
                 }
-            }
-        }, out);
+            },
+            out,
+        );
     })
 }
 
@@ -177,8 +195,13 @@ fn rf_gamma_map_rs(
     let cu = cu2.sqrt();
     let cmax = (1.0 + 2.0 / looks).sqrt();
     fill_out(x.len(), |out| {
-        run_stat_m(x, d, w, edge, na_omit, |x0, m| {
-            match local_stats(x0, &m) {
+        run_stat_m(
+            x,
+            d,
+            w,
+            edge,
+            na_omit,
+            |x0, m| match local_stats(x0, &m) {
                 None => NAN,
                 Some((mean, v)) => {
                     if mean == 0.0 {
@@ -197,8 +220,9 @@ fn rf_gamma_map_rs(
                         (b * mean + dsc.max(0.0).sqrt()) / (2.0 * alpha)
                     }
                 }
-            }
-        }, out);
+            },
+            out,
+        );
     })
 }
 
@@ -227,8 +251,13 @@ fn rf_frost_rs(
     // Stage 1: per-pixel damping factor B = damping * ci^2 (NaN when the
     // centre is NA or, in propagate mode, when the window holds any NA).
     let mut bfac = vec![0.0; x.len()];
-    run_stat_m(x, d, w, edge, na_omit, |x0, m| {
-        match local_stats(x0, &m) {
+    run_stat_m(
+        x,
+        d,
+        w,
+        edge,
+        na_omit,
+        |x0, m| match local_stats(x0, &m) {
             None => NAN,
             Some((mean, v)) => {
                 if mean == 0.0 {
@@ -237,8 +266,9 @@ fn rf_frost_rs(
                     damping * (v / (mean * mean))
                 }
             }
-        }
-    }, &mut bfac);
+        },
+        &mut bfac,
+    );
     // Stage 2: weighted gather with the damped-exponential kernel.
     fill_out(x.len(), |out| {
         if na_omit {
@@ -267,8 +297,7 @@ fn frost_apply<const NA_AWARE: bool>(
     let wr = 2 * w.hr + 1;
     let dist: Vec<f64> = (-(w.hc as isize)..=(w.hc as isize))
         .flat_map(|dc| {
-            (-(w.hr as isize)..=(w.hr as isize))
-                .map(move |dr| ((dr * dr + dc * dc) as f64).sqrt())
+            (-(w.hr as isize)..=(w.hr as isize)).map(move |dr| ((dr * dr + dc * dc) as f64).sqrt())
         })
         .collect();
     let cell = |layer: &[f64], b: f64, r: usize, c: usize, interior: bool| -> f64 {
@@ -375,30 +404,38 @@ fn rf_lee_sigma_rs(
     let hi_f = 1.0 + k * cu;
     let min_count = min_count.max(1) as usize;
     fill_out(x.len(), |out| {
-        crate::focal::run_stat(x, d, w, edge, na_omit, |x0, v, m| {
-            if x0.is_nan() || m.n == 0 || m.sum.is_nan() {
-                return NAN;
-            }
-            // Intensity data is non-negative; order the bounds anyway so a
-            // negative centre still gets a well-formed interval.
-            let (lo, hi) = if x0 >= 0.0 {
-                (x0 * lo_f, x0 * hi_f)
-            } else {
-                (x0 * hi_f, x0 * lo_f)
-            };
-            let (mut s, mut n) = (0.0, 0usize);
-            for &val in v.iter() {
-                if val >= lo && val <= hi {
-                    s += val;
-                    n += 1;
+        crate::focal::run_stat(
+            x,
+            d,
+            w,
+            edge,
+            na_omit,
+            |x0, v, m| {
+                if x0.is_nan() || m.n == 0 || m.sum.is_nan() {
+                    return NAN;
                 }
-            }
-            if n < min_count {
-                m.mean()
-            } else {
-                s / n as f64
-            }
-        }, out);
+                // Intensity data is non-negative; order the bounds anyway so a
+                // negative centre still gets a well-formed interval.
+                let (lo, hi) = if x0 >= 0.0 {
+                    (x0 * lo_f, x0 * hi_f)
+                } else {
+                    (x0 * hi_f, x0 * lo_f)
+                };
+                let (mut s, mut n) = (0.0, 0usize);
+                for &val in v.iter() {
+                    if val >= lo && val <= hi {
+                        s += val;
+                        n += 1;
+                    }
+                }
+                if n < min_count {
+                    m.mean()
+                } else {
+                    s / n as f64
+                }
+            },
+            out,
+        );
     })
 }
 

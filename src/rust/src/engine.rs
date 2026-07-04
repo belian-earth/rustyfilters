@@ -169,6 +169,7 @@ fn gather_border<const NA_AWARE: bool>(
 
 /// Process one output column. Interior rows of interior columns take the
 /// bounds-check-free hot loop; everything else goes through `gather_border`.
+#[allow(clippy::too_many_arguments)]
 fn scan_column<F, const NA_AWARE: bool>(
     x: &[f64],
     d: Dims,
@@ -625,7 +626,9 @@ mod tests {
         let mut state: u64 = 0x2545F4914F6CDD1D;
         (0..n)
             .map(|i| {
-                state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+                state = state
+                    .wrapping_mul(6364136223846793005)
+                    .wrapping_add(1442695040888963407);
                 if na_every > 0 && i % na_every == na_every - 1 {
                     NA
                 } else {
@@ -650,19 +653,29 @@ mod tests {
         let mean_m = |_: f64, m: Moments| if m.n == 0 { NA } else { m.mean() };
         let sd_m = |_: f64, m: Moments| if m.n < 2 { NA } else { m.var_samp().sqrt() };
         let mean_s = |_: f64, _: &mut Vec<f64>, m: Moments| if m.n == 0 { NA } else { m.mean() };
-        let sd_s = |_: f64, _: &mut Vec<f64>, m: Moments| if m.n < 2 { NA } else { m.var_samp().sqrt() };
+        let sd_s =
+            |_: f64, _: &mut Vec<f64>, m: Moments| if m.n < 2 { NA } else { m.var_samp().sqrt() };
         let mut a = vec![0.0; x.len()];
         let mut b = vec![0.0; x.len()];
         for edge in edges {
             run_moments::<_, true>(&x, d, w, edge, &mean_m, &mut a);
             run_scan::<_, true>(&x, d, w, edge, &mean_s, &mut b);
-            assert!(a.iter().zip(&b).all(|(p, q)| approx(*p, *q)), "mean omit {edge:?}");
+            assert!(
+                a.iter().zip(&b).all(|(p, q)| approx(*p, *q)),
+                "mean omit {edge:?}"
+            );
             run_moments::<_, false>(&x, d, w, edge, &mean_m, &mut a);
             run_scan::<_, false>(&x, d, w, edge, &mean_s, &mut b);
-            assert!(a.iter().zip(&b).all(|(p, q)| approx(*p, *q)), "mean prop {edge:?}");
+            assert!(
+                a.iter().zip(&b).all(|(p, q)| approx(*p, *q)),
+                "mean prop {edge:?}"
+            );
             run_moments::<_, true>(&x, d, w, edge, &sd_m, &mut a);
             run_scan::<_, true>(&x, d, w, edge, &sd_s, &mut b);
-            assert!(a.iter().zip(&b).all(|(p, q)| approx(*p, *q)), "sd omit {edge:?}");
+            assert!(
+                a.iter().zip(&b).all(|(p, q)| approx(*p, *q)),
+                "sd omit {edge:?}"
+            );
         }
     }
 
@@ -675,7 +688,12 @@ mod tests {
         let mean_s = |_: f64, _: &mut Vec<f64>, m: Moments| if m.n == 0 { NA } else { m.mean() };
         let mut a = vec![0.0; x.len()];
         let mut b = vec![0.0; x.len()];
-        for edge in [Edge::Shrink, Edge::Reflect, Edge::Nearest, Edge::Constant(1.0)] {
+        for edge in [
+            Edge::Shrink,
+            Edge::Reflect,
+            Edge::Nearest,
+            Edge::Constant(1.0),
+        ] {
             run_moments::<_, true>(&x, d, w, edge, &mean_m, &mut a);
             run_scan::<_, true>(&x, d, w, edge, &mean_s, &mut b);
             assert!(a.iter().zip(&b).all(|(p, q)| approx(*p, *q)), "{edge:?}");

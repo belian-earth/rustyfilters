@@ -1,4 +1,4 @@
-# rustyfilters (development version)
+# rustyfilters 0.0.0.9000
 
 * Initial release: SAR speckle filters (`rf_lee()`, `rf_enhanced_lee()`,
   `rf_lee_sigma()`, `rf_frost()`, `rf_kuan()`, `rf_gamma_map()`), smoothing

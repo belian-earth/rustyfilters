@@ -126,13 +126,9 @@ fn finish_col<const NA_AWARE: bool>(
                         continue;
                     }
                     // A constant column convolves vertically to (v, 1).
-                    for r in 0..nr {
-                        num[r] += kw * v;
-                    }
+                    num.iter_mut().for_each(|n| *n += kw * v);
                     if NA_AWARE {
-                        for r in 0..nr {
-                            den[r] += kw;
-                        }
+                        den.iter_mut().for_each(|d| *d += kw);
                     }
                 }
             }
@@ -194,7 +190,14 @@ fn gaussian_impl<const NA_AWARE: bool>(
             let cols = tx.chunks_mut(d.nr).zip(tm.chunks_mut(d.nr)).enumerate();
             if seq {
                 for (c, (txc, tmc)) in cols {
-                    conv_col::<NA_AWARE>(&layer_x[c * d.nr..(c + 1) * d.nr], d.nr, kr, edge, txc, tmc);
+                    conv_col::<NA_AWARE>(
+                        &layer_x[c * d.nr..(c + 1) * d.nr],
+                        d.nr,
+                        kr,
+                        edge,
+                        txc,
+                        tmc,
+                    );
                 }
             } else {
                 maybe_par(|| {
@@ -215,14 +218,28 @@ fn gaussian_impl<const NA_AWARE: bool>(
             }
         } else if seq {
             for (c, txc) in tx.chunks_mut(d.nr).enumerate() {
-                conv_col::<NA_AWARE>(&layer_x[c * d.nr..(c + 1) * d.nr], d.nr, kr, edge, txc, &mut tm_dummy);
+                conv_col::<NA_AWARE>(
+                    &layer_x[c * d.nr..(c + 1) * d.nr],
+                    d.nr,
+                    kr,
+                    edge,
+                    txc,
+                    &mut tm_dummy,
+                );
             }
         } else {
             maybe_par(|| {
                 tx.par_chunks_mut(d.nr).enumerate().for_each_init(
                     || vec![0.0; d.nr],
                     |tmd, (c, txc)| {
-                        conv_col::<NA_AWARE>(&layer_x[c * d.nr..(c + 1) * d.nr], d.nr, kr, edge, txc, tmd);
+                        conv_col::<NA_AWARE>(
+                            &layer_x[c * d.nr..(c + 1) * d.nr],
+                            d.nr,
+                            kr,
+                            edge,
+                            txc,
+                            tmd,
+                        );
                     },
                 );
             });
@@ -302,7 +319,12 @@ mod tests {
         let x = vec![3.5; 30];
         let k = gauss_kernel(5, 1.0);
         let mut out = vec![0.0; 30];
-        for edge in [Edge::Shrink, Edge::Reflect, Edge::Nearest, Edge::Constant(3.5)] {
+        for edge in [
+            Edge::Shrink,
+            Edge::Reflect,
+            Edge::Nearest,
+            Edge::Constant(3.5),
+        ] {
             gaussian_impl::<true>(&x, d, &k, &k, edge, &mut out);
             assert!(out.iter().all(|v| (v - 3.5).abs() < 1e-12), "{edge:?}");
             gaussian_impl::<false>(&x, d, &k, &k, edge, &mut out);

@@ -143,71 +143,137 @@ pub(crate) fn focal_stat(
     out: &mut [f64],
 ) {
     match stat {
-        "mean" => run_stat_m(x, d, w, edge, na_omit, |_, m| {
-            if m.n == 0 {
-                NAN
-            } else {
-                m.mean()
-            }
-        }, out),
-        "sum" => run_stat_m(x, d, w, edge, na_omit, |_, m| {
-            if m.n == 0 {
-                NAN
-            } else {
-                m.sum
-            }
-        }, out),
-        "sd" => run_stat_m(x, d, w, edge, na_omit, |_, m| {
-            if m.n < 2 {
-                NAN
-            } else {
-                m.var_samp().sqrt()
-            }
-        }, out),
-        "min" => run_stat(x, d, w, edge, na_omit, |_, v, m| {
-            if bad_window(v, &m) {
-                NAN
-            } else {
-                v.iter().fold(f64::INFINITY, |a, &b| if b < a { b } else { a })
-            }
-        }, out),
-        "max" => run_stat(x, d, w, edge, na_omit, |_, v, m| {
-            if bad_window(v, &m) {
-                NAN
-            } else {
-                v.iter().fold(f64::NEG_INFINITY, |a, &b| if b > a { b } else { a })
-            }
-        }, out),
-        "range" => run_stat(x, d, w, edge, na_omit, |_, v, m| {
-            if bad_window(v, &m) {
-                NAN
-            } else {
-                let (mut lo, mut hi) = (f64::INFINITY, f64::NEG_INFINITY);
-                for &b in v.iter() {
-                    if b < lo {
-                        lo = b;
-                    }
-                    if b > hi {
-                        hi = b;
-                    }
+        "mean" => run_stat_m(
+            x,
+            d,
+            w,
+            edge,
+            na_omit,
+            |_, m| {
+                if m.n == 0 {
+                    NAN
+                } else {
+                    m.mean()
                 }
-                hi - lo
-            }
-        }, out),
-        "median" => run_stat(x, d, w, edge, na_omit, |_, v, m| {
-            if bad_window(v, &m) {
-                NAN
-            } else {
-                median_of(v)
-            }
-        }, out),
-        "mode" => run_stat(x, d, w, edge, na_omit, |_, v, m| {
-            if bad_window(v, &m) {
-                NAN
-            } else {
-                mode_of(v)
-            }
-        }, out),
+            },
+            out,
+        ),
+        "sum" => run_stat_m(
+            x,
+            d,
+            w,
+            edge,
+            na_omit,
+            |_, m| {
+                if m.n == 0 {
+                    NAN
+                } else {
+                    m.sum
+                }
+            },
+            out,
+        ),
+        "sd" => run_stat_m(
+            x,
+            d,
+            w,
+            edge,
+            na_omit,
+            |_, m| {
+                if m.n < 2 {
+                    NAN
+                } else {
+                    m.var_samp().sqrt()
+                }
+            },
+            out,
+        ),
+        "min" => run_stat(
+            x,
+            d,
+            w,
+            edge,
+            na_omit,
+            |_, v, m| {
+                if bad_window(v, &m) {
+                    NAN
+                } else {
+                    v.iter()
+                        .fold(f64::INFINITY, |a, &b| if b < a { b } else { a })
+                }
+            },
+            out,
+        ),
+        "max" => run_stat(
+            x,
+            d,
+            w,
+            edge,
+            na_omit,
+            |_, v, m| {
+                if bad_window(v, &m) {
+                    NAN
+                } else {
+                    v.iter()
+                        .fold(f64::NEG_INFINITY, |a, &b| if b > a { b } else { a })
+                }
+            },
+            out,
+        ),
+        "range" => run_stat(
+            x,
+            d,
+            w,
+            edge,
+            na_omit,
+            |_, v, m| {
+                if bad_window(v, &m) {
+                    NAN
+                } else {
+                    let (mut lo, mut hi) = (f64::INFINITY, f64::NEG_INFINITY);
+                    for &b in v.iter() {
+                        if b < lo {
+                            lo = b;
+                        }
+                        if b > hi {
+                            hi = b;
+                        }
+                    }
+                    hi - lo
+                }
+            },
+            out,
+        ),
+        "median" => run_stat(
+            x,
+            d,
+            w,
+            edge,
+            na_omit,
+            |_, v, m| {
+                if bad_window(v, &m) {
+                    NAN
+                } else {
+                    median_of(v)
+                }
+            },
+            out,
+        ),
+        "mode" => run_stat(
+            x,
+            d,
+            w,
+            edge,
+            na_omit,
+            |_, v, m| {
+                if bad_window(v, &m) {
+                    NAN
+                } else {
+                    mode_of(v)
+                }
+            },
+            out,
+        ),
         _ => throw_r_error(format!("unknown stat: {stat}")),
     }
 }
