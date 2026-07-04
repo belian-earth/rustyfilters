@@ -50,7 +50,12 @@
 
 <dl><dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
 <dd><p>A numeric matrix or 3-D array (filtered layer by layer). Methods
-for terra <code>SpatRaster</code> objects are provided when terra is installed.</p></dd>
+are also provided for terra <code>SpatRaster</code> objects (when terra is
+installed) and for open gdalraster <code>GDALRaster</code> datasets (when
+gdalraster is installed). <code>GDALRaster</code> methods read the dataset into
+memory, filter it, and return a new <code>GDALRaster</code> object open in update
+mode on a Float64 dataset with the source's geometry: an in-memory
+<code>/vsimem</code> GTiff by default, or pass <code>filename</code> to write to disk.</p></dd>
 
 
 <dt id="arg-window">window<a class="anchor" aria-label="anchor" href="#arg-window"></a></dt>

@@ -57,6 +57,7 @@ extendr with multi-threading from rayon.</p>
 <ul><li><p><code><a href="rf_lee.html">rf_lee()</a></code> — Lee (1980) minimum mean-square-error filter</p></li>
 <li><p><code><a href="rf_enhanced_lee.html">rf_enhanced_lee()</a></code> — enhanced Lee (Lopes et al. 1990)</p></li>
 <li><p><code><a href="rf_lee_sigma.html">rf_lee_sigma()</a></code> — Lee sigma (1983) two-sigma filter</p></li>
+<li><p><code><a href="rf_lee_sigma_improved.html">rf_lee_sigma_improved()</a></code> — improved Lee sigma (Lee et al. 2009)</p></li>
 <li><p><code><a href="rf_frost.html">rf_frost()</a></code> — Frost (1982) damped exponential filter</p></li>
 <li><p><code><a href="rf_kuan.html">rf_kuan()</a></code> — Kuan (1985) filter</p></li>
 <li><p><code><a href="rf_gamma_map.html">rf_gamma_map()</a></code> — Gamma maximum a posteriori (Lopes et al. 1990)</p></li>
@@ -68,6 +69,8 @@ extendr with multi-threading from rayon.</p>
 <ul><li><p><code><a href="rf_mean.html">rf_mean()</a></code> — moving-window (boxcar) mean</p></li>
 <li><p><code><a href="rf_gaussian.html">rf_gaussian()</a></code> — separable Gaussian blur</p></li>
 <li><p><code><a href="rf_median.html">rf_median()</a></code> — moving-window median</p></li>
+<li><p><code><a href="rf_bilateral.html">rf_bilateral()</a></code> — bilateral edge-preserving smoother</p></li>
+<li><p><code><a href="rf_guided.html">rf_guided()</a></code> — guided filter (He et al. 2013)</p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="focal-statistics">Focal statistics<a class="anchor" aria-label="anchor" href="#focal-statistics"></a></h2>
@@ -75,6 +78,14 @@ extendr with multi-threading from rayon.</p>
 
 <ul><li><p><code><a href="rf_focal.html">rf_focal()</a></code> — min, max, range, standard deviation, sum, mode and
 friends over a moving window</p></li>
+</ul></div>
+    <div class="section level2">
+    <h2 id="convolution-and-edges">Convolution and edges<a class="anchor" aria-label="anchor" href="#convolution-and-edges"></a></h2>
+
+
+<ul><li><p><code><a href="rf_convolve.html">rf_convolve()</a></code> — arbitrary kernel filtering</p></li>
+<li><p><code><a href="rf_sobel.html">rf_sobel()</a></code> — Sobel gradient</p></li>
+<li><p><code><a href="rf_laplacian.html">rf_laplacian()</a></code> — discrete Laplacian</p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="configuration">Configuration<a class="anchor" aria-label="anchor" href="#configuration"></a></h2>

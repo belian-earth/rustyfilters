@@ -8,6 +8,9 @@ weight `W = (1 - cu^2/ci^2) / (1 + cu^2)` (clamped to `[0, 1]`).
 ## Usage
 
 ``` r
+# S3 method for class 'Rcpp_GDALRaster'
+rf_kuan(x, ...)
+
 rf_kuan(x, ...)
 
 # S3 method for class 'matrix'
@@ -43,8 +46,13 @@ rf_kuan(x, ...)
 
 - x:
 
-  A numeric matrix or 3-D array (filtered layer by layer). Methods for
-  terra `SpatRaster` objects are provided when terra is installed.
+  A numeric matrix or 3-D array (filtered layer by layer). Methods are
+  also provided for terra `SpatRaster` objects (when terra is installed)
+  and for open gdalraster `GDALRaster` datasets (when gdalraster is
+  installed). `GDALRaster` methods read the dataset into memory, filter
+  it, and return a new `GDALRaster` object open in update mode on a
+  Float64 dataset with the source's geometry: an in-memory `/vsimem`
+  GTiff by default, or pass `filename` to write to disk.
 
 - ...:
 

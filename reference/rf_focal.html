@@ -41,7 +41,7 @@ filters and rf_lee() and friends for adaptive speckle filters."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Focal statistics over a moving window</h1>
-      <small class="dont-index">Source: <a href="https://github.com/belian-earth/rustyfilters/blob/main/R/focal.R" class="external-link"><code>R/focal.R</code></a>, <a href="https://github.com/belian-earth/rustyfilters/blob/main/R/terra.R" class="external-link"><code>R/terra.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/belian-earth/rustyfilters/blob/main/R/focal.R" class="external-link"><code>R/focal.R</code></a>, <a href="https://github.com/belian-earth/rustyfilters/blob/main/R/gdalraster.R" class="external-link"><code>R/gdalraster.R</code></a>, <a href="https://github.com/belian-earth/rustyfilters/blob/main/R/terra.R" class="external-link"><code>R/terra.R</code></a></small>
       <div class="d-none name"><code>rf_focal.Rd</code></div>
     </div>
 
@@ -81,6 +81,9 @@ filters and <code><a href="rf_lee.html">rf_lee()</a></code> and friends for adap
 <span><span class="co"># Default S3 method</span></span>
 <span><span class="fu">rf_focal</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># S3 method for class 'Rcpp_GDALRaster'</span></span>
+<span><span class="fu">rf_focal</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
 <span><span class="co"># S3 method for class 'SpatRaster'</span></span>
 <span><span class="fu">rf_focal</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -91,7 +94,12 @@ filters and <code><a href="rf_lee.html">rf_lee()</a></code> and friends for adap
 
 <dl><dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
 <dd><p>A numeric matrix or 3-D array (filtered layer by layer). Methods
-for terra <code>SpatRaster</code> objects are provided when terra is installed.</p></dd>
+are also provided for terra <code>SpatRaster</code> objects (when terra is
+installed) and for open gdalraster <code>GDALRaster</code> datasets (when
+gdalraster is installed). <code>GDALRaster</code> methods read the dataset into
+memory, filter it, and return a new <code>GDALRaster</code> object open in update
+mode on a Float64 dataset with the source's geometry: an in-memory
+<code>/vsimem</code> GTiff by default, or pass <code>filename</code> to write to disk.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>

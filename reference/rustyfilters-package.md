@@ -15,6 +15,9 @@ via extendr with multi-threading from rayon.
 - [`rf_lee_sigma()`](https://belian-earth.github.io/rustyfilters/reference/rf_lee_sigma.md)
   — Lee sigma (1983) two-sigma filter
 
+- [`rf_lee_sigma_improved()`](https://belian-earth.github.io/rustyfilters/reference/rf_lee_sigma_improved.md)
+  — improved Lee sigma (Lee et al. 2009)
+
 - [`rf_frost()`](https://belian-earth.github.io/rustyfilters/reference/rf_frost.md)
   — Frost (1982) damped exponential filter
 
@@ -35,11 +38,28 @@ via extendr with multi-threading from rayon.
 - [`rf_median()`](https://belian-earth.github.io/rustyfilters/reference/rf_median.md)
   — moving-window median
 
+- [`rf_bilateral()`](https://belian-earth.github.io/rustyfilters/reference/rf_bilateral.md)
+  — bilateral edge-preserving smoother
+
+- [`rf_guided()`](https://belian-earth.github.io/rustyfilters/reference/rf_guided.md)
+  — guided filter (He et al. 2013)
+
 ## Focal statistics
 
 - [`rf_focal()`](https://belian-earth.github.io/rustyfilters/reference/rf_focal.md)
   — min, max, range, standard deviation, sum, mode and friends over a
   moving window
+
+## Convolution and edges
+
+- [`rf_convolve()`](https://belian-earth.github.io/rustyfilters/reference/rf_convolve.md)
+  — arbitrary kernel filtering
+
+- [`rf_sobel()`](https://belian-earth.github.io/rustyfilters/reference/rf_sobel.md)
+  — Sobel gradient
+
+- [`rf_laplacian()`](https://belian-earth.github.io/rustyfilters/reference/rf_laplacian.md)
+  — discrete Laplacian
 
 ## Configuration
 

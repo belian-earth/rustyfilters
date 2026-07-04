@@ -17,8 +17,8 @@
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Fast Focal and Speckle Filters for Matrices and Arrays">
-<meta name="description" content="Minimal, high-performance moving-window filters for numeric matrices, 3-D arrays and, optionally, terra SpatRaster objects. Provides SAR speckle filters (Lee, enhanced Lee, Lee sigma, Frost, Kuan, Gamma-MAP) and focal statistics (mean, Gaussian, median, min, max, range, standard deviation, sum, mode), each with an NA-aware default and a documented fast path, multi-threaded via Rust and rayon.">
-<meta property="og:description" content="Minimal, high-performance moving-window filters for numeric matrices, 3-D arrays and, optionally, terra SpatRaster objects. Provides SAR speckle filters (Lee, enhanced Lee, Lee sigma, Frost, Kuan, Gamma-MAP) and focal statistics (mean, Gaussian, median, min, max, range, standard deviation, sum, mode), each with an NA-aware default and a documented fast path, multi-threaded via Rust and rayon.">
+<meta name="description" content="Minimal, high-performance moving-window filters for numeric matrices, 3-D arrays and, optionally, terra SpatRaster and gdalraster GDALRaster objects. Provides SAR speckle filters (Lee, enhanced Lee, Lee sigma classic and improved, Frost, Kuan, Gamma-MAP), smoothing and edge-preserving filters (mean, Gaussian, median, bilateral, guided), focal statistics (min, max, range, standard deviation, sum, mode) and kernel convolution (including Sobel and Laplacian), each with an NA-aware default and a documented fast path, multi-threaded via Rust and rayon.">
+<meta property="og:description" content="Minimal, high-performance moving-window filters for numeric matrices, 3-D arrays and, optionally, terra SpatRaster and gdalraster GDALRaster objects. Provides SAR speckle filters (Lee, enhanced Lee, Lee sigma classic and improved, Frost, Kuan, Gamma-MAP), smoothing and edge-preserving filters (mean, Gaussian, median, bilateral, guided), focal statistics (min, max, range, standard deviation, sum, mode) and kernel convolution (including Sobel and Laplacian), each with an NA-aware default and a documented fast path, multi-threaded via Rust and rayon.">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -57,14 +57,16 @@
 </h1></div>
 <!-- badges: start -->
 
-<p>Minimal, blazing-fast moving-window filters for R matrices, 3-D arrays and terra <code>SpatRaster</code> objects, powered by Rust and rayon.</p>
+<p>Minimal, blazing-fast moving-window filters for R matrices and 3-D arrays, with methods for terra <code>SpatRaster</code> and gdalraster <code>GDALRaster</code> objects, powered by Rust and rayon.</p>
 <ul>
 <li>
-<strong>Speckle filters</strong> for SAR intensity data: <code><a href="reference/rf_lee.html">rf_lee()</a></code>, <code><a href="reference/rf_enhanced_lee.html">rf_enhanced_lee()</a></code>, <code><a href="reference/rf_lee_sigma.html">rf_lee_sigma()</a></code>, <code><a href="reference/rf_frost.html">rf_frost()</a></code>, <code><a href="reference/rf_kuan.html">rf_kuan()</a></code>, <code><a href="reference/rf_gamma_map.html">rf_gamma_map()</a></code>.</li>
+<strong>Speckle filters</strong> for SAR intensity data: <code><a href="reference/rf_lee.html">rf_lee()</a></code>, <code><a href="reference/rf_enhanced_lee.html">rf_enhanced_lee()</a></code>, <code><a href="reference/rf_lee_sigma.html">rf_lee_sigma()</a></code>, <code><a href="reference/rf_lee_sigma_improved.html">rf_lee_sigma_improved()</a></code> (Lee et al. 2009, SNAP-style), <code><a href="reference/rf_frost.html">rf_frost()</a></code>, <code><a href="reference/rf_kuan.html">rf_kuan()</a></code>, <code><a href="reference/rf_gamma_map.html">rf_gamma_map()</a></code>.</li>
 <li>
-<strong>Smoothing</strong>: <code><a href="reference/rf_mean.html">rf_mean()</a></code> (boxcar), <code><a href="reference/rf_gaussian.html">rf_gaussian()</a></code> (separable), <code><a href="reference/rf_median.html">rf_median()</a></code>.</li>
+<strong>Smoothing</strong>: <code><a href="reference/rf_mean.html">rf_mean()</a></code> (boxcar), <code><a href="reference/rf_gaussian.html">rf_gaussian()</a></code> (separable), <code><a href="reference/rf_median.html">rf_median()</a></code>, plus the edge-preserving <code><a href="reference/rf_bilateral.html">rf_bilateral()</a></code> and <code><a href="reference/rf_guided.html">rf_guided()</a></code> (He et al. 2013, window-size-independent cost).</li>
 <li>
 <strong>Focal statistics</strong>: <code><a href="reference/rf_focal.html">rf_focal()</a></code> with min, max, range, sd, sum, mode.</li>
+<li>
+<strong>Convolution and edges</strong>: <code><a href="reference/rf_convolve.html">rf_convolve()</a></code> with arbitrary kernels, <code><a href="reference/rf_sobel.html">rf_sobel()</a></code>, <code><a href="reference/rf_laplacian.html">rf_laplacian()</a></code>.</li>
 <li>
 <strong>Parallel by default</strong>: all cores on load; tune with <code><a href="reference/rf_threads.html">rf_set_threads()</a></code>. Results are bitwise identical whatever the thread count.</li>
 <li>
@@ -118,7 +120,7 @@
 <span><span class="co">#&gt; [4,] 6.468255  9.515358 13.87116 18.22696 21.27407</span></span>
 <span><span class="co">#&gt; [5,] 7.077675 10.124779 14.48058 18.83638 21.88349</span></span></code></pre></div>
 <div class="section level3">
-<h3 id="terra">terra<a class="anchor" aria-label="anchor" href="#terra"></a>
+<h3 id="terra-and-gdalraster">terra and gdalraster<a class="anchor" aria-label="anchor" href="#terra-and-gdalraster"></a>
 </h3>
 <p><code>SpatRaster</code> methods are available whenever terra is installed (the raster is materialised in memory, filtered layer by layer, and rebuilt with its geometry):</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
@@ -133,12 +135,27 @@
 <span><span class="co">#&gt; name        : elevation</span></span>
 <span><span class="co">#&gt; min value   :       142</span></span>
 <span><span class="co">#&gt; max value   :     537.5</span></span></code></pre></div>
+<p>Open gdalraster <code>GDALRaster</code> datasets work the same way: the result is a new <code>GDALRaster</code> object on a Float64 dataset with the source’s geometry, in-memory (<code>/vsimem</code>) by default or on disk via <code>filename</code>:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/storml_elev.tif"</span>, package <span class="op">=</span> <span class="st">"gdalraster"</span><span class="op">)</span></span>
+<span><span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu">new</span><span class="op">(</span><span class="fu">gdalraster</span><span class="fu">::</span><span class="va"><a href="https://firelab.github.io/gdalraster/reference/GDALRaster-class.html" class="external-link">GDALRaster</a></span>, <span class="va">f</span><span class="op">)</span></span>
+<span><span class="va">smoothed</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/rf_median.html">rf_median</a></span><span class="op">(</span><span class="va">ds</span>, window <span class="op">=</span> <span class="fl">5L</span><span class="op">)</span></span>
+<span><span class="va">smoothed</span></span>
+<span><span class="co">#&gt; C++ object of class &lt;GDALRaster&gt;</span></span>
+<span><span class="co">#&gt; • Driver: GeoTIFF (GTiff)</span></span>
+<span><span class="co">#&gt; • DSN: "/vsimem/rustyfilters_51bf42fa4b728.tif"</span></span>
+<span><span class="co">#&gt; • Dimensions: 143, 107, 1</span></span>
+<span><span class="co">#&gt; • CRS: NAD83 / UTM zone 12N (EPSG:26912)</span></span>
+<span><span class="co">#&gt; • Pixel resolution: 30.000000, 30.000000</span></span>
+<span><span class="co">#&gt; • Bbox: 323476.071971, 5101871.983031, 327766.071971, 5105081.983031</span></span>
+<span><span class="va">smoothed</span><span class="op">$</span><span class="fu">close</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">ds</span><span class="op">$</span><span class="fu">close</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="threads">Threads<a class="anchor" aria-label="anchor" href="#threads"></a>
 </h3>
 <p>Everything runs on all cores by default. Control it globally:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/rf_threads.html">rf_get_threads</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 20</span></span>
 <span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/rf_threads.html">rf_set_threads</a></span><span class="op">(</span><span class="fl">2L</span><span class="op">)</span></span>
@@ -150,9 +167,6 @@
 <h2 id="roadmap">Roadmap<a class="anchor" aria-label="anchor" href="#roadmap"></a>
 </h2>
 <ul>
-<li>Generic convolution (<code>rf_convolve()</code>), Sobel and Laplacian edge filters</li>
-<li>Bilateral and guided edge-preserving smoothers</li>
-<li>Improved Lee sigma (Lee et al. 2009)</li>
 <li>Histogram/van Herk O(1) median, min and max</li>
 </ul>
 </div>

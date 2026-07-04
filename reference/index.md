@@ -10,6 +10,8 @@ Adaptive local-statistics filters for SAR intensity data.
   : Enhanced Lee speckle filter
 - [`rf_lee_sigma()`](https://belian-earth.github.io/rustyfilters/reference/rf_lee_sigma.md)
   : Lee sigma speckle filter
+- [`rf_lee_sigma_improved()`](https://belian-earth.github.io/rustyfilters/reference/rf_lee_sigma_improved.md)
+  : Improved Lee sigma speckle filter
 - [`rf_frost()`](https://belian-earth.github.io/rustyfilters/reference/rf_frost.md)
   : Frost speckle filter
 - [`rf_kuan()`](https://belian-earth.github.io/rustyfilters/reference/rf_kuan.md)
@@ -19,7 +21,7 @@ Adaptive local-statistics filters for SAR intensity data.
 
 ## Smoothing
 
-Classic moving-window smoothers.
+Classic and edge-preserving moving-window smoothers.
 
 - [`rf_mean()`](https://belian-earth.github.io/rustyfilters/reference/rf_mean.md)
   : Moving-window mean (boxcar) filter
@@ -27,6 +29,10 @@ Classic moving-window smoothers.
   : Gaussian blur
 - [`rf_median()`](https://belian-earth.github.io/rustyfilters/reference/rf_median.md)
   : Moving-window median filter
+- [`rf_bilateral()`](https://belian-earth.github.io/rustyfilters/reference/rf_bilateral.md)
+  : Bilateral filter
+- [`rf_guided()`](https://belian-earth.github.io/rustyfilters/reference/rf_guided.md)
+  : Guided filter
 
 ## Focal statistics
 
@@ -34,6 +40,17 @@ Window summaries beyond the mean.
 
 - [`rf_focal()`](https://belian-earth.github.io/rustyfilters/reference/rf_focal.md)
   : Focal statistics over a moving window
+
+## Convolution & edges
+
+Arbitrary kernels and gradient filters.
+
+- [`rf_convolve()`](https://belian-earth.github.io/rustyfilters/reference/rf_convolve.md)
+  : Filter with an arbitrary kernel
+- [`rf_sobel()`](https://belian-earth.github.io/rustyfilters/reference/rf_sobel.md)
+  : Sobel edge detection
+- [`rf_laplacian()`](https://belian-earth.github.io/rustyfilters/reference/rf_laplacian.md)
+  : Laplacian filter
 
 ## Configuration
 
