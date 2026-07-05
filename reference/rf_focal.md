@@ -41,7 +41,7 @@ rf_focal(
 rf_focal(x, ...)
 
 # S3 method for class 'Rcpp_GDALRaster'
-rf_focal(x, ...)
+rf_focal(x, window = 3L, ...)
 
 # S3 method for class 'SpatRaster'
 rf_focal(x, ...)
@@ -54,10 +54,18 @@ rf_focal(x, ...)
   A numeric matrix or 3-D array (filtered layer by layer). Methods are
   also provided for terra `SpatRaster` objects (when terra is installed)
   and for open gdalraster `GDALRaster` datasets (when gdalraster is
-  installed). `GDALRaster` methods read the dataset into memory, filter
-  it, and return a new `GDALRaster` object open in update mode on a
-  Float64 dataset with the source's geometry: an in-memory `/vsimem`
-  GTiff by default, or pass `filename` to write to disk.
+  installed). `GDALRaster` methods return a new `GDALRaster` object open
+  in update mode on a Float64 dataset with the source's geometry. Small
+  datasets are filtered in memory and land on an in-memory `/vsimem`
+  GTiff by default; datasets whose decoded size exceeds
+  `options(rustyfilters.block_memory)` (default 2 GiB) stream through
+  full-width row bands with a halo sized to the filter's window, writing
+  to a GeoTIFF tempfile instead. Interior band seams are exact (the halo
+  supplies the true neighbouring data; `edge` fires only at real raster
+  edges). `GDALRaster` methods accept three extra arguments: `filename`
+  (output path, replacing the tempfile/`/vsimem` default), `by_block`
+  (`TRUE`/`FALSE` to force or forbid streaming) and `block_rows` (rows
+  per band, sized from the memory budget by default).
 
 - ...:
 
@@ -117,17 +125,9 @@ data.
 ## Examples
 
 ``` r
-m <- matrix(as.numeric(1:20), nrow = 4)
-rf_focal(m, window = 3L, stat = "sd")
-#>          [,1]     [,2]     [,3]     [,4]     [,5]
-#> [1,] 2.380476 3.619392 3.619392 3.619392 2.380476
-#> [2,] 2.366432 3.570714 3.570714 3.570714 2.366432
-#> [3,] 2.366432 3.570714 3.570714 3.570714 2.366432
-#> [4,] 2.380476 3.619392 3.619392 3.619392 2.380476
-rf_focal(m, window = c(3L, 5L), stat = "max", edge = "nearest")
-#>      [,1] [,2] [,3] [,4] [,5]
-#> [1,]   10   14   18   18   18
-#> [2,]   11   15   19   19   19
-#> [3,]   12   16   20   20   20
-#> [4,]   12   16   20   20   20
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+rf_plot(rf_focal(volcano, window = 5L, stat = "sd"), main = "focal sd")
+rf_plot(rf_focal(volcano, window = 5L, stat = "range"), main = "focal range")
+
+par(op)
 ```

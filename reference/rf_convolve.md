@@ -39,7 +39,7 @@ rf_convolve(
 rf_convolve(x, ...)
 
 # S3 method for class 'Rcpp_GDALRaster'
-rf_convolve(x, ...)
+rf_convolve(x, kernel, ...)
 
 # S3 method for class 'SpatRaster'
 rf_convolve(x, ...)
@@ -52,10 +52,18 @@ rf_convolve(x, ...)
   A numeric matrix or 3-D array (filtered layer by layer). Methods are
   also provided for terra `SpatRaster` objects (when terra is installed)
   and for open gdalraster `GDALRaster` datasets (when gdalraster is
-  installed). `GDALRaster` methods read the dataset into memory, filter
-  it, and return a new `GDALRaster` object open in update mode on a
-  Float64 dataset with the source's geometry: an in-memory `/vsimem`
-  GTiff by default, or pass `filename` to write to disk.
+  installed). `GDALRaster` methods return a new `GDALRaster` object open
+  in update mode on a Float64 dataset with the source's geometry. Small
+  datasets are filtered in memory and land on an in-memory `/vsimem`
+  GTiff by default; datasets whose decoded size exceeds
+  `options(rustyfilters.block_memory)` (default 2 GiB) stream through
+  full-width row bands with a halo sized to the filter's window, writing
+  to a GeoTIFF tempfile instead. Interior band seams are exact (the halo
+  supplies the true neighbouring data; `edge` fires only at real raster
+  edges). `GDALRaster` methods accept three extra arguments: `filename`
+  (output path, replacing the tempfile/`/vsimem` default), `by_block`
+  (`TRUE`/`FALSE` to force or forbid streaming) and `block_rows` (rows
+  per band, sized from the memory budget by default).
 
 - ...:
 
@@ -118,20 +126,10 @@ values; there is no principled general correction, so consider
 ## Examples
 
 ``` r
-m <- matrix(as.numeric(1:25), 5)
 sharpen <- matrix(c(0, -1, 0, -1, 5, -1, 0, -1, 0), 3)
-rf_convolve(m, sharpen)
-#>      [,1] [,2] [,3] [,4] [,5]
-#> [1,]   -3   11   21   31   67
-#> [2,]   -1    7   12   17   49
-#> [3,]    1    8   13   18   51
-#> [4,]    3    9   14   19   53
-#> [5,]   11   21   31   41   81
-rf_convolve(m, matrix(1, 3, 3) / 9, normalize = TRUE)
-#>      [,1] [,2] [,3] [,4] [,5]
-#> [1,]  4.0  6.5 11.5 16.5 19.0
-#> [2,]  4.5  7.0 12.0 17.0 19.5
-#> [3,]  5.5  8.0 13.0 18.0 20.5
-#> [4,]  6.5  9.0 14.0 19.0 21.5
-#> [5,]  7.0  9.5 14.5 19.5 22.0
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+rf_plot(volcano, main = "volcano")
+rf_plot(rf_convolve(volcano, sharpen), main = "sharpened")
+
+par(op)
 ```

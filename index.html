@@ -86,44 +86,29 @@
 <div class="section level2">
 <h2 id="quick-start">Quick start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
 </h2>
+<p>The package ships <code>s1_sthelens</code>, a real Sentinel-1 backscatter patch over the crater of Mount St Helens, and <code><a href="reference/rf_plot.html">rf_plot()</a></code>, a small percentile-stretch image helper:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/belian-earth/rustyfilters" class="external-link">rustyfilters</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># A speckled two-level scene, as single-look SAR intensity might look</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
-<span><span class="va">truth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">4</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">3200</span><span class="op">)</span>, <span class="fl">80</span>, <span class="fl">80</span><span class="op">)</span></span>
-<span><span class="va">speckled</span> <span class="op">&lt;-</span> <span class="va">truth</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/stats/Exponential.html" class="external-link">rexp</a></span><span class="op">(</span><span class="fl">6400</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">despeckled</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/rf_lee.html">rf_lee</a></span><span class="op">(</span><span class="va">speckled</span>, window <span class="op">=</span> <span class="fl">7L</span>, looks <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span></span>
 <span><span class="va">op</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/image.html" class="external-link">image</a></span><span class="op">(</span><span class="va">speckled</span>, axes <span class="op">=</span> <span class="cn">FALSE</span>, main <span class="op">=</span> <span class="st">"speckled"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/image.html" class="external-link">image</a></span><span class="op">(</span><span class="va">despeckled</span>, axes <span class="op">=</span> <span class="cn">FALSE</span>, main <span class="op">=</span> <span class="st">"rf_lee()"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="reference/rf_plot.html">rf_plot</a></span><span class="op">(</span><span class="va">s1_sthelens</span>, main <span class="op">=</span> <span class="st">"Sentinel-1 VV, Mount St Helens"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/rf_plot.html">rf_plot</a></span><span class="op">(</span><span class="fu"><a href="reference/rf_lee.html">rf_lee</a></span><span class="op">(</span><span class="va">s1_sthelens</span>, window <span class="op">=</span> <span class="fl">7L</span>, looks <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>, main <span class="op">=</span> <span class="st">"rf_lee()"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="reference/figures/README-example-1.png" alt="" width="100%"></p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span><span class="va">op</span><span class="op">)</span></span></code></pre></div>
-<p>Focal statistics and smoothing share the same engine:</p>
+<p>Focal statistics, smoothing and convolution share the same engine:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">25</span><span class="op">)</span>, <span class="fl">5</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/rf_focal.html">rf_focal</a></span><span class="op">(</span><span class="va">m</span>, window <span class="op">=</span> <span class="fl">3L</span>, stat <span class="op">=</span> <span class="st">"sd"</span><span class="op">)</span></span>
-<span><span class="co">#&gt;          [,1]     [,2]     [,3]     [,4]     [,5]</span></span>
-<span><span class="co">#&gt; [1,] 2.943920 4.505552 4.505552 4.505552 2.943920</span></span>
-<span><span class="co">#&gt; [2,] 2.880972 4.415880 4.415880 4.415880 2.880972</span></span>
-<span><span class="co">#&gt; [3,] 2.880972 4.415880 4.415880 4.415880 2.880972</span></span>
-<span><span class="co">#&gt; [4,] 2.880972 4.415880 4.415880 4.415880 2.880972</span></span>
-<span><span class="co">#&gt; [5,] 2.943920 4.505552 4.505552 4.505552 2.943920</span></span>
-<span><span class="fu"><a href="reference/rf_gaussian.html">rf_gaussian</a></span><span class="op">(</span><span class="va">m</span>, sigma <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="co">#&gt;          [,1]      [,2]     [,3]     [,4]     [,5]</span></span>
-<span><span class="co">#&gt; [1,] 4.116513  7.163616 11.51942 15.87522 18.92232</span></span>
-<span><span class="co">#&gt; [2,] 4.725934  7.773037 12.12884 16.48464 19.53175</span></span>
-<span><span class="co">#&gt; [3,] 5.597094  8.644198 13.00000 17.35580 20.40291</span></span>
-<span><span class="co">#&gt; [4,] 6.468255  9.515358 13.87116 18.22696 21.27407</span></span>
-<span><span class="co">#&gt; [5,] 7.077675 10.124779 14.48058 18.83638 21.88349</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">op</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/rf_plot.html">rf_plot</a></span><span class="op">(</span><span class="fu"><a href="reference/rf_focal.html">rf_focal</a></span><span class="op">(</span><span class="va">volcano</span>, window <span class="op">=</span> <span class="fl">5L</span>, stat <span class="op">=</span> <span class="st">"sd"</span><span class="op">)</span>, main <span class="op">=</span> <span class="st">"focal sd"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/rf_plot.html">rf_plot</a></span><span class="op">(</span><span class="fu"><a href="reference/rf_sobel.html">rf_sobel</a></span><span class="op">(</span><span class="va">volcano</span><span class="op">)</span>, main <span class="op">=</span> <span class="st">"Sobel gradient"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="reference/figures/README-focal-1.png" alt="" width="100%"></p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span><span class="va">op</span><span class="op">)</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="terra-and-gdalraster">terra and gdalraster<a class="anchor" aria-label="anchor" href="#terra-and-gdalraster"></a>
 </h3>
 <p><code>SpatRaster</code> methods are available whenever terra is installed (the raster is materialised in memory, filtered layer by layer, and rebuilt with its geometry):</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu">terra</span><span class="fu">::</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/rast.html" class="external-link">rast</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"ex/elev.tif"</span>, package <span class="op">=</span> <span class="st">"terra"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="reference/rf_median.html">rf_median</a></span><span class="op">(</span><span class="va">r</span>, window <span class="op">=</span> <span class="fl">5L</span><span class="op">)</span></span>
 <span><span class="co">#&gt; class       : SpatRaster</span></span>
@@ -135,15 +120,15 @@
 <span><span class="co">#&gt; name        : elevation</span></span>
 <span><span class="co">#&gt; min value   :       142</span></span>
 <span><span class="co">#&gt; max value   :     537.5</span></span></code></pre></div>
-<p>Open gdalraster <code>GDALRaster</code> datasets work the same way: the result is a new <code>GDALRaster</code> object on a Float64 dataset with the source’s geometry, in-memory (<code>/vsimem</code>) by default or on disk via <code>filename</code>:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<p>Open gdalraster <code>GDALRaster</code> datasets work the same way: the result is a new <code>GDALRaster</code> object on a Float64 dataset with the source’s geometry, in-memory (<code>/vsimem</code>) by default or on disk via <code>filename</code>. Rasters too large for memory (above <code>options(rustyfilters.block_memory)</code>, default 2 GiB) are streamed automatically through row bands with a filter-sized halo, writing to a GeoTIFF tempfile; interior band seams are exact, and <code>by_block</code>/<code>block_rows</code> give manual control:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata/storml_elev.tif"</span>, package <span class="op">=</span> <span class="st">"gdalraster"</span><span class="op">)</span></span>
 <span><span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu">new</span><span class="op">(</span><span class="fu">gdalraster</span><span class="fu">::</span><span class="va"><a href="https://firelab.github.io/gdalraster/reference/GDALRaster-class.html" class="external-link">GDALRaster</a></span>, <span class="va">f</span><span class="op">)</span></span>
 <span><span class="va">smoothed</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/rf_median.html">rf_median</a></span><span class="op">(</span><span class="va">ds</span>, window <span class="op">=</span> <span class="fl">5L</span><span class="op">)</span></span>
 <span><span class="va">smoothed</span></span>
 <span><span class="co">#&gt; C++ object of class &lt;GDALRaster&gt;</span></span>
 <span><span class="co">#&gt; • Driver: GeoTIFF (GTiff)</span></span>
-<span><span class="co">#&gt; • DSN: "/vsimem/rustyfilters_51bf42fa4b728.tif"</span></span>
+<span><span class="co">#&gt; • DSN: "/vsimem/rustyfilters_1478f21aeff804.tif"</span></span>
 <span><span class="co">#&gt; • Dimensions: 143, 107, 1</span></span>
 <span><span class="co">#&gt; • CRS: NAD83 / UTM zone 12N (EPSG:26912)</span></span>
 <span><span class="co">#&gt; • Pixel resolution: 30.000000, 30.000000</span></span>
@@ -155,7 +140,7 @@
 <h3 id="threads">Threads<a class="anchor" aria-label="anchor" href="#threads"></a>
 </h3>
 <p>Everything runs on all cores by default. Control it globally:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/rf_threads.html">rf_get_threads</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 20</span></span>
 <span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/rf_threads.html">rf_set_threads</a></span><span class="op">(</span><span class="fl">2L</span><span class="op">)</span></span>

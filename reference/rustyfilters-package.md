@@ -61,6 +61,14 @@ via extendr with multi-threading from rayon.
 - [`rf_laplacian()`](https://belian-earth.github.io/rustyfilters/reference/rf_laplacian.md)
   — discrete Laplacian
 
+## Data and visualisation
+
+- [s1_sthelens](https://belian-earth.github.io/rustyfilters/reference/s1_sthelens.md)
+  — a real Sentinel-1 backscatter patch to experiment on
+
+- [`rf_plot()`](https://belian-earth.github.io/rustyfilters/reference/rf_plot.md)
+  — quick image plots with a percentile stretch
+
 ## Configuration
 
 - [`rf_set_threads()`](https://belian-earth.github.io/rustyfilters/reference/rf_threads.md)

@@ -52,6 +52,15 @@ Arbitrary kernels and gradient filters.
 - [`rf_laplacian()`](https://belian-earth.github.io/rustyfilters/reference/rf_laplacian.md)
   : Laplacian filter
 
+## Data & visualisation
+
+Example data and quick image plotting.
+
+- [`s1_sthelens`](https://belian-earth.github.io/rustyfilters/reference/s1_sthelens.md)
+  : Sentinel-1 backscatter over Mount St Helens
+- [`rf_plot()`](https://belian-earth.github.io/rustyfilters/reference/rf_plot.md)
+  : Plot a matrix or array layer as an image
+
 ## Configuration
 
 Multi-threading control.

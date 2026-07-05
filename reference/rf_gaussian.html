@@ -58,7 +58,7 @@ excluded and the remaining weights are rescaled, which also fills isolated
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="co"># S3 method for class 'Rcpp_GDALRaster'</span></span>
-<span><span class="fu">rf_gaussian</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">rf_gaussian</span><span class="op">(</span><span class="va">x</span>, sigma <span class="op">=</span> <span class="fl">1</span>, window <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">rf_gaussian</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
@@ -99,14 +99,18 @@ excluded and the remaining weights are rescaled, which also fills isolated
 <dd><p>A numeric matrix or 3-D array (filtered layer by layer). Methods
 are also provided for terra <code>SpatRaster</code> objects (when terra is
 installed) and for open gdalraster <code>GDALRaster</code> datasets (when
-gdalraster is installed). <code>GDALRaster</code> methods read the dataset into
-memory, filter it, and return a new <code>GDALRaster</code> object open in update
-mode on a Float64 dataset with the source's geometry: an in-memory
-<code>/vsimem</code> GTiff by default, or pass <code>filename</code> to write to disk.</p></dd>
-
-
-<dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed on to methods.</p></dd>
+gdalraster is installed). <code>GDALRaster</code> methods return a new
+<code>GDALRaster</code> object open in update mode on a Float64 dataset with the
+source's geometry. Small datasets are filtered in memory and land on an
+in-memory <code>/vsimem</code> GTiff by default; datasets whose decoded size
+exceeds <code>options(rustyfilters.block_memory)</code> (default 2 GiB) stream
+through full-width row bands with a halo sized to the filter's window,
+writing to a GeoTIFF tempfile instead. Interior band seams are exact
+(the halo supplies the true neighbouring data; <code>edge</code> fires only at
+real raster edges). <code>GDALRaster</code> methods accept three extra arguments:
+<code>filename</code> (output path, replacing the tempfile/<code>/vsimem</code> default),
+<code>by_block</code> (<code>TRUE</code>/<code>FALSE</code> to force or forbid streaming) and
+<code>block_rows</code> (rows per band, sized from the memory budget by default).</p></dd>
 
 
 <dt id="arg-sigma">sigma<a class="anchor" aria-label="anchor" href="#arg-sigma"></a></dt>
@@ -119,6 +123,10 @@ cells.</p></dd>
 pair <code>c(rows, cols)</code>. The default <code>NULL</code> uses
 <code>2 * ceiling(3 * sigma) + 1</code> in both dimensions, which captures
 effectively all of the kernel mass.</p></dd>
+
+
+<dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
+<dd><p>Passed on to methods.</p></dd>
 
 
 <dt id="arg-edge">edge<a class="anchor" aria-label="anchor" href="#arg-edge"></a></dt>
@@ -154,21 +162,11 @@ preserved), containing the filtered values as doubles.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">25</span><span class="op">)</span>, <span class="fl">5</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu">rf_gaussian</span><span class="op">(</span><span class="va">m</span>, sigma <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          [,1]      [,2]     [,3]     [,4]     [,5]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1,] 4.116513  7.163616 11.51942 15.87522 18.92232</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] 4.725934  7.773037 12.12884 16.48464 19.53175</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] 5.597094  8.644198 13.00000 17.35580 20.40291</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [4,] 6.468255  9.515358 13.87116 18.22696 21.27407</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [5,] 7.077675 10.124779 14.48058 18.83638 21.88349</span>
-<span class="r-in"><span><span class="fu">rf_gaussian</span><span class="op">(</span><span class="va">m</span>, sigma <span class="op">=</span> <span class="fl">2</span>, window <span class="op">=</span> <span class="fl">7L</span>, edge <span class="op">=</span> <span class="st">"reflect"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          [,1]      [,2]     [,3]     [,4]     [,5]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1,] 6.608405  8.642498 11.93473 15.22697 17.26106</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] 7.015223  9.049317 12.34155 15.63379 17.66788</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] 7.673670  9.707764 13.00000 16.29224 18.32633</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [4,] 8.332118 10.366211 13.65845 16.95068 18.98478</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [5,] 8.738936 10.773030 14.06527 17.35750 19.39160</span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">op</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="rf_plot.html">rf_plot</a></span><span class="op">(</span><span class="va">volcano</span>, main <span class="op">=</span> <span class="st">"volcano"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="rf_plot.html">rf_plot</a></span><span class="op">(</span><span class="fu">rf_gaussian</span><span class="op">(</span><span class="va">volcano</span>, sigma <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>, main <span class="op">=</span> <span class="st">"Gaussian, sigma = 2"</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="rf_gaussian-1.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span><span class="va">op</span><span class="op">)</span></span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

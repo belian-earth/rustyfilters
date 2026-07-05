@@ -10,7 +10,7 @@ isolated `NA` holes with their neighbourhood estimate.
 
 ``` r
 # S3 method for class 'Rcpp_GDALRaster'
-rf_gaussian(x, ...)
+rf_gaussian(x, sigma = 1, window = NULL, ...)
 
 rf_gaussian(x, ...)
 
@@ -50,14 +50,18 @@ rf_gaussian(x, ...)
   A numeric matrix or 3-D array (filtered layer by layer). Methods are
   also provided for terra `SpatRaster` objects (when terra is installed)
   and for open gdalraster `GDALRaster` datasets (when gdalraster is
-  installed). `GDALRaster` methods read the dataset into memory, filter
-  it, and return a new `GDALRaster` object open in update mode on a
-  Float64 dataset with the source's geometry: an in-memory `/vsimem`
-  GTiff by default, or pass `filename` to write to disk.
-
-- ...:
-
-  Passed on to methods.
+  installed). `GDALRaster` methods return a new `GDALRaster` object open
+  in update mode on a Float64 dataset with the source's geometry. Small
+  datasets are filtered in memory and land on an in-memory `/vsimem`
+  GTiff by default; datasets whose decoded size exceeds
+  `options(rustyfilters.block_memory)` (default 2 GiB) stream through
+  full-width row bands with a halo sized to the filter's window, writing
+  to a GeoTIFF tempfile instead. Interior band seams are exact (the halo
+  supplies the true neighbouring data; `edge` fires only at real raster
+  edges). `GDALRaster` methods accept three extra arguments: `filename`
+  (output path, replacing the tempfile/`/vsimem` default), `by_block`
+  (`TRUE`/`FALSE` to force or forbid streaming) and `block_rows` (rows
+  per band, sized from the memory budget by default).
 
 - sigma:
 
@@ -68,6 +72,10 @@ rf_gaussian(x, ...)
   Kernel size in cells: a single odd positive integer or a pair
   `c(rows, cols)`. The default `NULL` uses `2 * ceiling(3 * sigma) + 1`
   in both dimensions, which captures effectively all of the kernel mass.
+
+- ...:
+
+  Passed on to methods.
 
 - edge:
 
@@ -105,19 +113,9 @@ preserved), containing the filtered values as doubles.
 ## Examples
 
 ``` r
-m <- matrix(as.numeric(1:25), 5)
-rf_gaussian(m, sigma = 1)
-#>          [,1]      [,2]     [,3]     [,4]     [,5]
-#> [1,] 4.116513  7.163616 11.51942 15.87522 18.92232
-#> [2,] 4.725934  7.773037 12.12884 16.48464 19.53175
-#> [3,] 5.597094  8.644198 13.00000 17.35580 20.40291
-#> [4,] 6.468255  9.515358 13.87116 18.22696 21.27407
-#> [5,] 7.077675 10.124779 14.48058 18.83638 21.88349
-rf_gaussian(m, sigma = 2, window = 7L, edge = "reflect")
-#>          [,1]      [,2]     [,3]     [,4]     [,5]
-#> [1,] 6.608405  8.642498 11.93473 15.22697 17.26106
-#> [2,] 7.015223  9.049317 12.34155 15.63379 17.66788
-#> [3,] 7.673670  9.707764 13.00000 16.29224 18.32633
-#> [4,] 8.332118 10.366211 13.65845 16.95068 18.98478
-#> [5,] 8.738936 10.773030 14.06527 17.35750 19.39160
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+rf_plot(volcano, main = "volcano")
+rf_plot(rf_gaussian(volcano, sigma = 2), main = "Gaussian, sigma = 2")
+
+par(op)
 ```

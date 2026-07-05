@@ -8,7 +8,7 @@ window size.
 
 ``` r
 # S3 method for class 'Rcpp_GDALRaster'
-rf_mean(x, ...)
+rf_mean(x, window = 3L, ...)
 
 rf_mean(x, ...)
 
@@ -46,19 +46,27 @@ rf_mean(x, ...)
   A numeric matrix or 3-D array (filtered layer by layer). Methods are
   also provided for terra `SpatRaster` objects (when terra is installed)
   and for open gdalraster `GDALRaster` datasets (when gdalraster is
-  installed). `GDALRaster` methods read the dataset into memory, filter
-  it, and return a new `GDALRaster` object open in update mode on a
-  Float64 dataset with the source's geometry: an in-memory `/vsimem`
-  GTiff by default, or pass `filename` to write to disk.
-
-- ...:
-
-  Passed on to methods.
+  installed). `GDALRaster` methods return a new `GDALRaster` object open
+  in update mode on a Float64 dataset with the source's geometry. Small
+  datasets are filtered in memory and land on an in-memory `/vsimem`
+  GTiff by default; datasets whose decoded size exceeds
+  `options(rustyfilters.block_memory)` (default 2 GiB) stream through
+  full-width row bands with a halo sized to the filter's window, writing
+  to a GeoTIFF tempfile instead. Interior band seams are exact (the halo
+  supplies the true neighbouring data; `edge` fires only at real raster
+  edges). `GDALRaster` methods accept three extra arguments: `filename`
+  (output path, replacing the tempfile/`/vsimem` default), `by_block`
+  (`TRUE`/`FALSE` to force or forbid streaming) and `block_rows` (rows
+  per band, sized from the memory budget by default).
 
 - window:
 
   Window size in cells: a single odd positive integer, or a pair
   `c(rows, cols)` of odd positive integers.
+
+- ...:
+
+  Passed on to methods.
 
 - edge:
 
@@ -97,19 +105,9 @@ for other window statistics,
 ## Examples
 
 ``` r
-m <- matrix(as.numeric(1:25), 5)
-rf_mean(m)
-#>      [,1] [,2] [,3] [,4] [,5]
-#> [1,]  4.0  6.5 11.5 16.5 19.0
-#> [2,]  4.5  7.0 12.0 17.0 19.5
-#> [3,]  5.5  8.0 13.0 18.0 20.5
-#> [4,]  6.5  9.0 14.0 19.0 21.5
-#> [5,]  7.0  9.5 14.5 19.5 22.0
-rf_mean(m, window = c(3L, 5L), edge = "reflect")
-#>          [,1]      [,2]     [,3]     [,4]     [,5]
-#> [1,] 5.333333  7.333333 11.33333 15.33333 17.33333
-#> [2,] 6.000000  8.000000 12.00000 16.00000 18.00000
-#> [3,] 7.000000  9.000000 13.00000 17.00000 19.00000
-#> [4,] 8.000000 10.000000 14.00000 18.00000 20.00000
-#> [5,] 8.666667 10.666667 14.66667 18.66667 20.66667
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+rf_plot(volcano, main = "volcano")
+rf_plot(rf_mean(volcano, window = 7L), main = "7 x 7 mean")
+
+par(op)
 ```

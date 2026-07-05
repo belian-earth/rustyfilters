@@ -96,7 +96,7 @@ clean one).</p>
 <span><span class="fu">rf_guided</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'Rcpp_GDALRaster'</span></span>
-<span><span class="fu">rf_guided</span><span class="op">(</span><span class="va">x</span>, guide <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">rf_guided</span><span class="op">(</span><span class="va">x</span>, guide <span class="op">=</span> <span class="cn">NULL</span>, window <span class="op">=</span> <span class="fl">5L</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'SpatRaster'</span></span>
 <span><span class="fu">rf_guided</span><span class="op">(</span><span class="va">x</span>, guide <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
@@ -110,10 +110,18 @@ clean one).</p>
 <dd><p>A numeric matrix or 3-D array (filtered layer by layer). Methods
 are also provided for terra <code>SpatRaster</code> objects (when terra is
 installed) and for open gdalraster <code>GDALRaster</code> datasets (when
-gdalraster is installed). <code>GDALRaster</code> methods read the dataset into
-memory, filter it, and return a new <code>GDALRaster</code> object open in update
-mode on a Float64 dataset with the source's geometry: an in-memory
-<code>/vsimem</code> GTiff by default, or pass <code>filename</code> to write to disk.</p></dd>
+gdalraster is installed). <code>GDALRaster</code> methods return a new
+<code>GDALRaster</code> object open in update mode on a Float64 dataset with the
+source's geometry. Small datasets are filtered in memory and land on an
+in-memory <code>/vsimem</code> GTiff by default; datasets whose decoded size
+exceeds <code>options(rustyfilters.block_memory)</code> (default 2 GiB) stream
+through full-width row bands with a halo sized to the filter's window,
+writing to a GeoTIFF tempfile instead. Interior band seams are exact
+(the halo supplies the true neighbouring data; <code>edge</code> fires only at
+real raster edges). <code>GDALRaster</code> methods accept three extra arguments:
+<code>filename</code> (output path, replacing the tempfile/<code>/vsimem</code> default),
+<code>by_block</code> (<code>TRUE</code>/<code>FALSE</code> to force or forbid streaming) and
+<code>block_rows</code> (rows per band, sized from the memory budget by default).</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -181,54 +189,12 @@ fit; cells whose centre is <code>NA</code> in the guide stay <code>NA</code> in 
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">10</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">50</span><span class="op">)</span>, <span class="fl">10</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu">rf_guided</span><span class="op">(</span><span class="va">m</span>, window <span class="op">=</span> <span class="fl">5L</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>             [,1]        [,2]        [,3]         [,4]        [,5]      [,6]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [1,] -0.4446212  1.27072828  0.81915110  1.258741425 -0.09268275 10.336216</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [2,]  0.1581293  0.34100630  0.69351313 -0.055952437 -0.18093902  9.385098</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [3,] -0.6339756 -0.49767087  0.08143414  0.376709599  0.70735758 10.282630</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [4,]  1.2446933 -1.86280580 -1.72494781 -0.029540381  0.57286826  8.886872</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [5,]  0.2399302  0.91670647  0.53435449 -1.211203523 -0.59935720 11.313911</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [6,] -0.5947828 -0.03156511 -0.03566379 -0.342573282 -0.60997570 11.830191</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [7,]  0.3546261  0.00950134 -0.10050241 -0.307979104  0.39321509  9.603210</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [8,]  0.5402274  0.74854161 -1.12690722 -0.003332007  0.77163404  8.964137</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [9,]  0.4318143  0.65172931 -0.31715571  0.987036663 -0.03314232 10.486859</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [10,] -0.1162973  0.49221889  0.38392104  0.706207238  0.87862095  9.821295</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>            [,7]      [,8]      [,9]     [,10]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [1,] 12.162229 10.426100  9.574170  9.648303</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [2,]  9.964366  9.418367  9.926463 10.972635</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [3,] 10.616740 10.537895 10.995960 10.937527</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [4,] 10.010225  9.198988  8.752920 10.569083</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [5,]  9.310022  8.922491 10.496821 11.242985</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [6,] 10.149220 10.238928 10.270652 10.431914</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [7,]  8.341597  9.605124 10.843838  9.033063</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [8,] 11.292477  9.973314  9.736392  9.563920</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [9,] 10.112988 10.032811 10.262659  9.109205</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [10,] 11.925016  9.489169 10.173975  9.640103</span>
-<span class="r-in"><span><span class="fu">rf_guided</span><span class="op">(</span><span class="va">m</span>, window <span class="op">=</span> <span class="fl">5L</span>, eps <span class="op">=</span> <span class="fl">100</span><span class="op">)</span> <span class="co"># large eps: plain smoothing</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               [,1]      [,2]      [,3]     [,4]     [,5]     [,6]     [,7]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [1,]  0.105351301 0.6065634 1.1841527 2.249748 3.441085 6.903453 8.534911</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [2,]  0.052944913 0.5016732 1.1151475 2.022579 3.371906 6.737767 8.230899</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [3,] -0.003095555 0.4130992 1.0161606 2.031545 3.467631 6.847381 8.281176</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [4,] -0.050509007 0.2619536 0.7713559 1.889494 3.364442 6.562651 8.117100</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [5,] -0.048235247 0.4263132 0.9745021 1.715474 3.163539 6.924368 8.003294</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [6,] -0.049637788 0.3832513 0.9295146 1.840340 3.179042 7.010997 8.108079</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [7,]  0.029941146 0.4500084 0.9809800 1.903756 3.385856 6.671052 7.870406</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [8,]  0.124152748 0.5761430 0.9684115 2.029957 3.520297 6.613830 8.275422</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [9,]  0.180734462 0.6293627 1.1008557 2.220324 3.457589 6.875588 8.164415</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [10,]  0.204137897 0.6478031 1.1982541 2.232098 3.645155 6.793225 8.408890</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           [,8]     [,9]     [,10]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [1,] 9.247047 9.753216 10.233378</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [2,] 9.142860 9.762101 10.243368</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [3,] 9.216490 9.797603 10.220200</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [4,] 9.017092 9.597677 10.124401</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [5,] 8.969579 9.666082 10.100947</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [6,] 9.072037 9.634008 10.053059</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [7,] 8.983899 9.615356  9.965143</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [8,] 9.021042 9.546371  9.940272</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [9,] 9.048812 9.588906  9.940903</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [10,] 9.006235 9.577931  9.929005</span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">noisy</span> <span class="op">&lt;-</span> <span class="va">volcano</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">volcano</span><span class="op">)</span>, sd <span class="op">=</span> <span class="fl">8</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">volcano</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">op</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="rf_plot.html">rf_plot</a></span><span class="op">(</span><span class="va">noisy</span>, main <span class="op">=</span> <span class="st">"noisy volcano"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="rf_plot.html">rf_plot</a></span><span class="op">(</span><span class="fu">rf_guided</span><span class="op">(</span><span class="va">noisy</span>, window <span class="op">=</span> <span class="fl">5L</span>, eps <span class="op">=</span> <span class="fl">64</span><span class="op">)</span>, main <span class="op">=</span> <span class="st">"guided"</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="rf_guided-1.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span><span class="va">op</span><span class="op">)</span></span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

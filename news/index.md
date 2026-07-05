@@ -2,6 +2,27 @@
 
 ## rustyfilters 0.0.0.9000
 
+- New `s1_sthelens` dataset: a real Sentinel-1 RTC backscatter patch
+  (VV, linear power, 300 x 300 at 10 m) over the crater of Mount St
+  Helens, for realistic speckle-filter examples. Contains modified
+  Copernicus Sentinel data (2024).
+
+- New
+  [`rf_plot()`](https://belian-earth.github.io/rustyfilters/reference/rf_plot.md)
+  helper: correctly oriented
+  [`image()`](https://rdrr.io/r/graphics/image.html) plots with a
+  percentile stretch and an Inferno palette; all documentation examples
+  now plot instead of printing matrices.
+
+- `GDALRaster` methods stream rasters larger than
+  `options(rustyfilters.block_memory)` (default 2 GiB) through
+  full-width row bands with a filter-sized halo, writing to a GeoTIFF
+  tempfile (or `filename`). Interior band seams are exact; `by_block`
+  and `block_rows` control the behaviour.
+  [`rf_lee_sigma_improved()`](https://belian-earth.github.io/rustyfilters/reference/rf_lee_sigma_improved.md)
+  computes its global 98th percentile exactly when streaming, so tiled
+  results match the whole-image run bit for bit.
+
 - All filters gained methods for open gdalraster `GDALRaster` datasets
   (gdalraster in Suggests): results are returned as a new `GDALRaster`
   object on an in-memory `/vsimem` GTiff, or written to `filename`.

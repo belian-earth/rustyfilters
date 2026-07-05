@@ -82,7 +82,7 @@ filters and <code><a href="rf_lee.html">rf_lee()</a></code> and friends for adap
 <span><span class="fu">rf_focal</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'Rcpp_GDALRaster'</span></span>
-<span><span class="fu">rf_focal</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">rf_focal</span><span class="op">(</span><span class="va">x</span>, window <span class="op">=</span> <span class="fl">3L</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'SpatRaster'</span></span>
 <span><span class="fu">rf_focal</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
@@ -96,10 +96,18 @@ filters and <code><a href="rf_lee.html">rf_lee()</a></code> and friends for adap
 <dd><p>A numeric matrix or 3-D array (filtered layer by layer). Methods
 are also provided for terra <code>SpatRaster</code> objects (when terra is
 installed) and for open gdalraster <code>GDALRaster</code> datasets (when
-gdalraster is installed). <code>GDALRaster</code> methods read the dataset into
-memory, filter it, and return a new <code>GDALRaster</code> object open in update
-mode on a Float64 dataset with the source's geometry: an in-memory
-<code>/vsimem</code> GTiff by default, or pass <code>filename</code> to write to disk.</p></dd>
+gdalraster is installed). <code>GDALRaster</code> methods return a new
+<code>GDALRaster</code> object open in update mode on a Float64 dataset with the
+source's geometry. Small datasets are filtered in memory and land on an
+in-memory <code>/vsimem</code> GTiff by default; datasets whose decoded size
+exceeds <code>options(rustyfilters.block_memory)</code> (default 2 GiB) stream
+through full-width row bands with a halo sized to the filter's window,
+writing to a GeoTIFF tempfile instead. Interior band seams are exact
+(the halo supplies the true neighbouring data; <code>edge</code> fires only at
+real raster edges). <code>GDALRaster</code> methods accept three extra arguments:
+<code>filename</code> (output path, replacing the tempfile/<code>/vsimem</code> default),
+<code>by_block</code> (<code>TRUE</code>/<code>FALSE</code> to force or forbid streaming) and
+<code>block_rows</code> (rows per band, sized from the memory budget by default).</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -157,19 +165,11 @@ data.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">20</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu">rf_focal</span><span class="op">(</span><span class="va">m</span>, window <span class="op">=</span> <span class="fl">3L</span>, stat <span class="op">=</span> <span class="st">"sd"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          [,1]     [,2]     [,3]     [,4]     [,5]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1,] 2.380476 3.619392 3.619392 3.619392 2.380476</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] 2.366432 3.570714 3.570714 3.570714 2.366432</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] 2.366432 3.570714 3.570714 3.570714 2.366432</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [4,] 2.380476 3.619392 3.619392 3.619392 2.380476</span>
-<span class="r-in"><span><span class="fu">rf_focal</span><span class="op">(</span><span class="va">m</span>, window <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3L</span>, <span class="fl">5L</span><span class="op">)</span>, stat <span class="op">=</span> <span class="st">"max"</span>, edge <span class="op">=</span> <span class="st">"nearest"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      [,1] [,2] [,3] [,4] [,5]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1,]   10   14   18   18   18</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2,]   11   15   19   19   19</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [3,]   12   16   20   20   20</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [4,]   12   16   20   20   20</span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">op</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, mar <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="rf_plot.html">rf_plot</a></span><span class="op">(</span><span class="fu">rf_focal</span><span class="op">(</span><span class="va">volcano</span>, window <span class="op">=</span> <span class="fl">5L</span>, stat <span class="op">=</span> <span class="st">"sd"</span><span class="op">)</span>, main <span class="op">=</span> <span class="st">"focal sd"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="rf_plot.html">rf_plot</a></span><span class="op">(</span><span class="fu">rf_focal</span><span class="op">(</span><span class="va">volcano</span>, window <span class="op">=</span> <span class="fl">5L</span>, stat <span class="op">=</span> <span class="st">"range"</span><span class="op">)</span>, main <span class="op">=</span> <span class="st">"focal range"</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="rf_focal-1.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span><span class="va">op</span><span class="op">)</span></span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
