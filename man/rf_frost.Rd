@@ -89,9 +89,10 @@ homogeneous windows average broadly, heterogeneous windows concentrate
 weight on the centre pixel.
 }
 \examples{
-set.seed(1)
-speckled <- matrix(rexp(400), 20, 20)
-rf_frost(speckled, window = 7L, damping = 2)
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+rf_plot(s1_sthelens, main = "Sentinel-1 VV")
+rf_plot(rf_frost(s1_sthelens, window = 7L, damping = 2), main = "Frost")
+par(op)
 }
 \references{
 Frost, V. S., Stiles, J. A., Shanmugan, K. S., & Holtzman,

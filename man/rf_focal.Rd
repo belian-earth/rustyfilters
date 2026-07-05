@@ -95,9 +95,10 @@ categorical data encoded as numbers and is not meaningful for continuous
 data.
 }
 \examples{
-m <- matrix(as.numeric(1:20), nrow = 4)
-rf_focal(m, window = 3L, stat = "sd")
-rf_focal(m, window = c(3L, 5L), stat = "max", edge = "nearest")
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+rf_plot(rf_focal(volcano, window = 5L, stat = "sd"), main = "focal sd")
+rf_plot(rf_focal(volcano, window = 5L, stat = "range"), main = "focal range")
+par(op)
 }
 \seealso{
 \code{\link[=rf_mean]{rf_mean()}}, \code{\link[=rf_median]{rf_median()}}, \code{\link[=rf_gaussian]{rf_gaussian()}}, \code{\link[=rf_set_threads]{rf_set_threads()}}

@@ -83,9 +83,13 @@ number of valid cells (possible at edges or around missing values) average
 the two middle values, matching \code{\link[stats:median]{stats::median()}}.
 }
 \examples{
-m <- matrix(as.numeric(1:25), 5)
-m[3, 3] <- 1000
-rf_median(m)
+noisy <- volcano
+set.seed(1)
+noisy[sample(length(noisy), 150)] <- 220 # salt noise
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+rf_plot(noisy, main = "salted volcano")
+rf_plot(rf_median(noisy, window = 3L), main = "3 x 3 median")
+par(op)
 }
 \seealso{
 \code{\link[=rf_mean]{rf_mean()}}, \code{\link[=rf_gaussian]{rf_gaussian()}}, \code{\link[=rf_focal]{rf_focal()}}, \code{\link[=rf_set_threads]{rf_set_threads()}}

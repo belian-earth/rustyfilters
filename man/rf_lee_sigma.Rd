@@ -100,9 +100,10 @@ pure-speckle observation of the centre value would span. If fewer than
 (suppressing isolated dark/bright noise).
 }
 \examples{
-set.seed(1)
-speckled <- matrix(rexp(400), 20, 20)
-rf_lee_sigma(speckled, window = 7L, looks = 1)
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+rf_plot(s1_sthelens, main = "Sentinel-1 VV")
+rf_plot(rf_lee_sigma(s1_sthelens, window = 7L), main = "Lee sigma")
+par(op)
 }
 \references{
 Lee, J.-S. (1983). Digital image smoothing and the sigma

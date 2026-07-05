@@ -103,10 +103,11 @@ Missing cells in either \code{x} or the guide are excluded from every window
 fit; cells whose centre is \code{NA} in the guide stay \code{NA} in the output.
 }
 \examples{
-set.seed(1)
-m <- matrix(rep(c(0, 10), each = 50), 10) + rnorm(100)
-rf_guided(m, window = 5L)
-rf_guided(m, window = 5L, eps = 100) # large eps: plain smoothing
+noisy <- volcano + matrix(rnorm(length(volcano), sd = 8), nrow(volcano))
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+rf_plot(noisy, main = "noisy volcano")
+rf_plot(rf_guided(noisy, window = 5L, eps = 64), main = "guided")
+par(op)
 }
 \references{
 He, K., Sun, J., & Tang, X. (2013). Guided image filtering.

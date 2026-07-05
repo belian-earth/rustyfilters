@@ -18,9 +18,10 @@
 #'   preserved), containing the filtered values as doubles.
 #' @seealso [rf_mean()], [rf_median()], [rf_gaussian()], [rf_set_threads()]
 #' @examples
-#' m <- matrix(as.numeric(1:20), nrow = 4)
-#' rf_focal(m, window = 3L, stat = "sd")
-#' rf_focal(m, window = c(3L, 5L), stat = "max", edge = "nearest")
+#' op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+#' rf_plot(rf_focal(volcano, window = 5L, stat = "sd"), main = "focal sd")
+#' rf_plot(rf_focal(volcano, window = 5L, stat = "range"), main = "focal range")
+#' par(op)
 #' @export
 rf_focal <- function(x, ...) {
   UseMethod("rf_focal")

@@ -93,10 +93,10 @@ Cells whose centre value is \code{NA} remain \code{NA}. Speckle filters expect
 intensity (linear power) data, not dB.
 }
 \examples{
-set.seed(1)
-truth <- matrix(rep(c(1, 4), each = 200), 20, 20)
-speckled <- truth * rexp(400)
-rf_lee(speckled, window = 7L, looks = 1)
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+rf_plot(s1_sthelens, main = "Sentinel-1 VV")
+rf_plot(rf_lee(s1_sthelens, window = 7L, looks = 1), main = "Lee")
+par(op)
 }
 \references{
 Lee, J.-S. (1980). Digital image enhancement and noise

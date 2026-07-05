@@ -9,9 +9,10 @@
 #' @seealso [rf_median()], [rf_gaussian()], [rf_focal()] for other window
 #'   statistics, [rf_set_threads()]
 #' @examples
-#' m <- matrix(as.numeric(1:25), 5)
-#' rf_mean(m)
-#' rf_mean(m, window = c(3L, 5L), edge = "reflect")
+#' op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+#' rf_plot(volcano, main = "volcano")
+#' rf_plot(rf_mean(volcano, window = 7L), main = "7 x 7 mean")
+#' par(op)
 #' @export
 rf_mean <- function(x, ...) {
   UseMethod("rf_mean")
@@ -60,9 +61,10 @@ rf_mean.default <- function(x, ...) {
 #'   effectively all of the kernel mass.
 #' @seealso [rf_mean()], [rf_median()], [rf_focal()], [rf_set_threads()]
 #' @examples
-#' m <- matrix(as.numeric(1:25), 5)
-#' rf_gaussian(m, sigma = 1)
-#' rf_gaussian(m, sigma = 2, window = 7L, edge = "reflect")
+#' op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+#' rf_plot(volcano, main = "volcano")
+#' rf_plot(rf_gaussian(volcano, sigma = 2), main = "Gaussian, sigma = 2")
+#' par(op)
 #' @export
 rf_gaussian <- function(x, ...) {
   UseMethod("rf_gaussian")
@@ -106,9 +108,13 @@ rf_gaussian.default <- function(x, ...) {
 #' @inherit rf_params return
 #' @seealso [rf_mean()], [rf_gaussian()], [rf_focal()], [rf_set_threads()]
 #' @examples
-#' m <- matrix(as.numeric(1:25), 5)
-#' m[3, 3] <- 1000
-#' rf_median(m)
+#' noisy <- volcano
+#' set.seed(1)
+#' noisy[sample(length(noisy), 150)] <- 220 # salt noise
+#' op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+#' rf_plot(noisy, main = "salted volcano")
+#' rf_plot(rf_median(noisy, window = 3L), main = "3 x 3 median")
+#' par(op)
 #' @export
 rf_median <- function(x, ...) {
   UseMethod("rf_median")

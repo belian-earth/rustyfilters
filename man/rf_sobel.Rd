@@ -80,9 +80,10 @@ Convolves with the 3 x 3 Sobel kernels to estimate the local gradient:
 \code{"magnitude"} (the default) is \code{sqrt(gx^2 + gy^2)}.
 }
 \examples{
-m <- matrix(rep(c(1, 1, 5, 5), each = 5), 5)
-rf_sobel(m)
-rf_sobel(m, direction = "x")
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+rf_plot(volcano, main = "volcano")
+rf_plot(rf_sobel(volcano), main = "Sobel gradient magnitude")
+par(op)
 }
 \seealso{
 \code{\link[=rf_convolve]{rf_convolve()}}, \code{\link[=rf_laplacian]{rf_laplacian()}}

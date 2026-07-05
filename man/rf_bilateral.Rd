@@ -101,9 +101,11 @@ centre). Cost grows with the window area; this is the slowest smoother in
 the package.
 }
 \examples{
-set.seed(1)
-m <- matrix(rep(c(0, 10), each = 50), 10) + rnorm(100)
-rf_bilateral(m, sigma_d = 1.5, sigma_r = 3)
+noisy <- volcano + matrix(rnorm(length(volcano), sd = 8), nrow(volcano))
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+rf_plot(noisy, main = "noisy volcano")
+rf_plot(rf_bilateral(noisy, sigma_d = 2, sigma_r = 20), main = "bilateral")
+par(op)
 }
 \seealso{
 \code{\link[=rf_guided]{rf_guided()}}, \code{\link[=rf_gaussian]{rf_gaussian()}}, \code{\link[=rf_median]{rf_median()}},

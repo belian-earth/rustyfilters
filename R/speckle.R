@@ -27,10 +27,10 @@
 #' @seealso [rf_enhanced_lee()], [rf_lee_sigma()], [rf_kuan()], [rf_frost()],
 #'   [rf_gamma_map()], [rf_set_threads()]
 #' @examples
-#' set.seed(1)
-#' truth <- matrix(rep(c(1, 4), each = 200), 20, 20)
-#' speckled <- truth * rexp(400)
-#' rf_lee(speckled, window = 7L, looks = 1)
+#' op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+#' rf_plot(s1_sthelens, main = "Sentinel-1 VV")
+#' rf_plot(rf_lee(s1_sthelens, window = 7L, looks = 1), main = "Lee")
+#' par(op)
 #' @export
 rf_lee <- function(x, ...) {
   UseMethod("rf_lee")
@@ -80,9 +80,10 @@ rf_lee.default <- function(x, ...) {
 #'   Remote Sensing*, 28(6), 992-1000.
 #' @seealso [rf_lee()], [rf_gamma_map()], [rf_frost()]
 #' @examples
-#' set.seed(1)
-#' speckled <- matrix(rexp(400), 20, 20)
-#' rf_enhanced_lee(speckled, window = 7L, looks = 1, damping = 1)
+#' op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+#' rf_plot(s1_sthelens, main = "Sentinel-1 VV")
+#' rf_plot(rf_enhanced_lee(s1_sthelens, window = 7L), main = "enhanced Lee")
+#' par(op)
 #' @export
 rf_enhanced_lee <- function(x, ...) {
   UseMethod("rf_enhanced_lee")
@@ -137,9 +138,10 @@ rf_enhanced_lee.default <- function(x, ...) {
 #'   255-269.
 #' @seealso [rf_lee()], [rf_enhanced_lee()]
 #' @examples
-#' set.seed(1)
-#' speckled <- matrix(rexp(400), 20, 20)
-#' rf_lee_sigma(speckled, window = 7L, looks = 1)
+#' op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+#' rf_plot(s1_sthelens, main = "Sentinel-1 VV")
+#' rf_plot(rf_lee_sigma(s1_sthelens, window = 7L), main = "Lee sigma")
+#' par(op)
 #' @export
 rf_lee_sigma <- function(x, ...) {
   UseMethod("rf_lee_sigma")
@@ -195,9 +197,10 @@ rf_lee_sigma.default <- function(x, ...) {
 #'   Pattern Analysis and Machine Intelligence*, 4(2), 157-166.
 #' @seealso [rf_lee()], [rf_enhanced_lee()], [rf_gamma_map()]
 #' @examples
-#' set.seed(1)
-#' speckled <- matrix(rexp(400), 20, 20)
-#' rf_frost(speckled, window = 7L, damping = 2)
+#' op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+#' rf_plot(s1_sthelens, main = "Sentinel-1 VV")
+#' rf_plot(rf_frost(s1_sthelens, window = 7L, damping = 2), main = "Frost")
+#' par(op)
 #' @export
 rf_frost <- function(x, ...) {
   UseMethod("rf_frost")
@@ -243,9 +246,10 @@ rf_frost.default <- function(x, ...) {
 #'   Machine Intelligence*, 7(2), 165-177.
 #' @seealso [rf_lee()], [rf_gamma_map()]
 #' @examples
-#' set.seed(1)
-#' speckled <- matrix(rexp(400), 20, 20)
-#' rf_kuan(speckled, window = 7L, looks = 1)
+#' op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+#' rf_plot(s1_sthelens, main = "Sentinel-1 VV")
+#' rf_plot(rf_kuan(s1_sthelens, window = 7L), main = "Kuan")
+#' par(op)
 #' @export
 rf_kuan <- function(x, ...) {
   UseMethod("rf_kuan")
@@ -293,9 +297,10 @@ rf_kuan.default <- function(x, ...) {
 #'   images. *IGARSS 1990*, 2409-2412.
 #' @seealso [rf_lee()], [rf_enhanced_lee()], [rf_frost()]
 #' @examples
-#' set.seed(1)
-#' speckled <- matrix(rexp(400), 20, 20)
-#' rf_gamma_map(speckled, window = 7L, looks = 1)
+#' op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+#' rf_plot(s1_sthelens, main = "Sentinel-1 VV")
+#' rf_plot(rf_gamma_map(s1_sthelens, window = 7L), main = "Gamma-MAP")
+#' par(op)
 #' @export
 rf_gamma_map <- function(x, ...) {
   UseMethod("rf_gamma_map")
@@ -358,9 +363,13 @@ rf_gamma_map.default <- function(x, ...) {
 #' @seealso [rf_lee_sigma()] for the classic 1983 filter, [rf_lee()],
 #'   [rf_enhanced_lee()]
 #' @examples
-#' set.seed(1)
-#' speckled <- matrix(rexp(400), 20, 20)
-#' rf_lee_sigma_improved(speckled, window = 7L, looks = 1, sigma = 0.9)
+#' op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+#' rf_plot(s1_sthelens, main = "Sentinel-1 VV")
+#' rf_plot(
+#'   rf_lee_sigma_improved(s1_sthelens, window = 7L, sigma = 0.9),
+#'   main = "improved Lee sigma"
+#' )
+#' par(op)
 #' @export
 rf_lee_sigma_improved <- function(x, ...) {
   UseMethod("rf_lee_sigma_improved")

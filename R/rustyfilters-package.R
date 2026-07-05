@@ -30,6 +30,10 @@
 #' - [rf_sobel()] --- Sobel gradient
 #' - [rf_laplacian()] --- discrete Laplacian
 #'
+#' @section Data and visualisation:
+#' - [s1_sthelens] --- a real Sentinel-1 backscatter patch to experiment on
+#' - [rf_plot()] --- quick image plots with a percentile stretch
+#'
 #' @section Configuration:
 #' - [rf_set_threads()] / [rf_get_threads()] --- multi-threading control
 #'

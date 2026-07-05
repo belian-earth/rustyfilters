@@ -51,6 +51,14 @@ friends over a moving window
 }
 }
 
+\section{Data and visualisation}{
+
+\itemize{
+\item \link{s1_sthelens} --- a real Sentinel-1 backscatter patch to experiment on
+\item \code{\link[=rf_plot]{rf_plot()}} --- quick image plots with a percentile stretch
+}
+}
+
 \section{Configuration}{
 
 \itemize{

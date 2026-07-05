@@ -61,28 +61,26 @@ Building from source needs a Rust toolchain (rustc >= 1.80):
 
 ## Quick start
 
-```{r example}
+The package ships `s1_sthelens`, a real Sentinel-1 backscatter patch over
+the crater of Mount St Helens, and `rf_plot()`, a small percentile-stretch
+image helper:
+
+```{r example, fig.height = 4}
 library(rustyfilters)
 
-# A speckled two-level scene, as single-look SAR intensity might look
-set.seed(1)
-truth <- matrix(rep(c(1, 4), each = 3200), 80, 80)
-speckled <- truth * rexp(6400)
-
-despeckled <- rf_lee(speckled, window = 7L, looks = 1)
-
 op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
-image(speckled, axes = FALSE, main = "speckled")
-image(despeckled, axes = FALSE, main = "rf_lee()")
+rf_plot(s1_sthelens, main = "Sentinel-1 VV, Mount St Helens")
+rf_plot(rf_lee(s1_sthelens, window = 7L, looks = 1), main = "rf_lee()")
 par(op)
 ```
 
-Focal statistics and smoothing share the same engine:
+Focal statistics, smoothing and convolution share the same engine:
 
-```{r focal}
-m <- matrix(as.numeric(1:25), 5)
-rf_focal(m, window = 3L, stat = "sd")
-rf_gaussian(m, sigma = 1)
+```{r focal, fig.height = 4}
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+rf_plot(rf_focal(volcano, window = 5L, stat = "sd"), main = "focal sd")
+rf_plot(rf_sobel(volcano), main = "Sobel gradient")
+par(op)
 ```
 
 ### terra and gdalraster

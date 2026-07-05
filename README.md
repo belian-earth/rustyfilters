@@ -53,19 +53,16 @@ Building from source needs a Rust toolchain (rustc \>= 1.80):
 
 ## Quick start
 
+The package ships `s1_sthelens`, a real Sentinel-1 backscatter patch
+over the crater of Mount St Helens, and `rf_plot()`, a small
+percentile-stretch image helper:
+
 ``` r
 library(rustyfilters)
 
-# A speckled two-level scene, as single-look SAR intensity might look
-set.seed(1)
-truth <- matrix(rep(c(1, 4), each = 3200), 80, 80)
-speckled <- truth * rexp(6400)
-
-despeckled <- rf_lee(speckled, window = 7L, looks = 1)
-
 op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
-image(speckled, axes = FALSE, main = "speckled")
-image(despeckled, axes = FALSE, main = "rf_lee()")
+rf_plot(s1_sthelens, main = "Sentinel-1 VV, Mount St Helens")
+rf_plot(rf_lee(s1_sthelens, window = 7L, looks = 1), main = "rf_lee()")
 ```
 
 <img src="man/figures/README-example-1.png" alt="" width="100%" />
@@ -74,24 +71,18 @@ image(despeckled, axes = FALSE, main = "rf_lee()")
 par(op)
 ```
 
-Focal statistics and smoothing share the same engine:
+Focal statistics, smoothing and convolution share the same engine:
 
 ``` r
-m <- matrix(as.numeric(1:25), 5)
-rf_focal(m, window = 3L, stat = "sd")
-#>          [,1]     [,2]     [,3]     [,4]     [,5]
-#> [1,] 2.943920 4.505552 4.505552 4.505552 2.943920
-#> [2,] 2.880972 4.415880 4.415880 4.415880 2.880972
-#> [3,] 2.880972 4.415880 4.415880 4.415880 2.880972
-#> [4,] 2.880972 4.415880 4.415880 4.415880 2.880972
-#> [5,] 2.943920 4.505552 4.505552 4.505552 2.943920
-rf_gaussian(m, sigma = 1)
-#>          [,1]      [,2]     [,3]     [,4]     [,5]
-#> [1,] 4.116513  7.163616 11.51942 15.87522 18.92232
-#> [2,] 4.725934  7.773037 12.12884 16.48464 19.53175
-#> [3,] 5.597094  8.644198 13.00000 17.35580 20.40291
-#> [4,] 6.468255  9.515358 13.87116 18.22696 21.27407
-#> [5,] 7.077675 10.124779 14.48058 18.83638 21.88349
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+rf_plot(rf_focal(volcano, window = 5L, stat = "sd"), main = "focal sd")
+rf_plot(rf_sobel(volcano), main = "Sobel gradient")
+```
+
+<img src="man/figures/README-focal-1.png" alt="" width="100%" />
+
+``` r
+par(op)
 ```
 
 ### terra and gdalraster
@@ -129,7 +120,7 @@ smoothed <- rf_median(ds, window = 5L)
 smoothed
 #> C++ object of class <GDALRaster>
 #> • Driver: GeoTIFF (GTiff)
-#> • DSN: "/vsimem/rustyfilters_81a6a2c4b12a8.tif"
+#> • DSN: "/vsimem/rustyfilters_1478f21aeff804.tif"
 #> • Dimensions: 143, 107, 1
 #> • CRS: NAD83 / UTM zone 12N (EPSG:26912)
 #> • Pixel resolution: 30.000000, 30.000000

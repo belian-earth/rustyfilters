@@ -91,9 +91,10 @@ between the MAP estimate solves
 with \code{alpha = (1 + cu^2) / (ci^2 - cu^2)} and \code{B = alpha - looks - 1}.
 }
 \examples{
-set.seed(1)
-speckled <- matrix(rexp(400), 20, 20)
-rf_gamma_map(speckled, window = 7L, looks = 1)
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+rf_plot(s1_sthelens, main = "Sentinel-1 VV")
+rf_plot(rf_gamma_map(s1_sthelens, window = 7L), main = "Gamma-MAP")
+par(op)
 }
 \references{
 Lopes, A., Nezry, E., Touzi, R., & Laur, H. (1990). Maximum a

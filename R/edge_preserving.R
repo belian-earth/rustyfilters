@@ -25,9 +25,11 @@
 #' @seealso [rf_guided()], [rf_gaussian()], [rf_median()],
 #'   [rf_set_threads()]
 #' @examples
-#' set.seed(1)
-#' m <- matrix(rep(c(0, 10), each = 50), 10) + rnorm(100)
-#' rf_bilateral(m, sigma_d = 1.5, sigma_r = 3)
+#' noisy <- volcano + matrix(rnorm(length(volcano), sd = 8), nrow(volcano))
+#' op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+#' rf_plot(noisy, main = "noisy volcano")
+#' rf_plot(rf_bilateral(noisy, sigma_d = 2, sigma_r = 20), main = "bilateral")
+#' par(op)
 #' @export
 rf_bilateral <- function(x, ...) {
   UseMethod("rf_bilateral")
@@ -101,10 +103,11 @@ rf_bilateral.default <- function(x, ...) {
 #'   35(6), 1397-1409.
 #' @seealso [rf_bilateral()], [rf_mean()], [rf_set_threads()]
 #' @examples
-#' set.seed(1)
-#' m <- matrix(rep(c(0, 10), each = 50), 10) + rnorm(100)
-#' rf_guided(m, window = 5L)
-#' rf_guided(m, window = 5L, eps = 100) # large eps: plain smoothing
+#' noisy <- volcano + matrix(rnorm(length(volcano), sd = 8), nrow(volcano))
+#' op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+#' rf_plot(noisy, main = "noisy volcano")
+#' rf_plot(rf_guided(noisy, window = 5L, eps = 64), main = "guided")
+#' par(op)
 #' @export
 rf_guided <- function(x, ...) {
   UseMethod("rf_guided")

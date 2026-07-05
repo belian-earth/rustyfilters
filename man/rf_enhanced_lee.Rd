@@ -96,9 +96,10 @@ centre with an exponential damping weight, and point targets
 (\code{ci >= cmax = sqrt(1 + 2/looks)}) are preserved untouched.
 }
 \examples{
-set.seed(1)
-speckled <- matrix(rexp(400), 20, 20)
-rf_enhanced_lee(speckled, window = 7L, looks = 1, damping = 1)
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+rf_plot(s1_sthelens, main = "Sentinel-1 VV")
+rf_plot(rf_enhanced_lee(s1_sthelens, window = 7L), main = "enhanced Lee")
+par(op)
 }
 \references{
 Lopes, A., Touzi, R., & Nezry, E. (1990). Adaptive speckle

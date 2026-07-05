@@ -1,5 +1,14 @@
 # rustyfilters 0.0.0.9000
 
+* New `s1_sthelens` dataset: a real Sentinel-1 RTC backscatter patch (VV,
+  linear power, 300 x 300 at 10 m) over the crater of Mount St Helens, for
+  realistic speckle-filter examples. Contains modified Copernicus Sentinel
+  data (2024).
+
+* New `rf_plot()` helper: correctly oriented `image()` plots with a
+  percentile stretch and an Inferno palette; all documentation examples now
+  plot instead of printing matrices.
+
 * `GDALRaster` methods stream rasters larger than
   `options(rustyfilters.block_memory)` (default 2 GiB) through full-width
   row bands with a filter-sized halo, writing to a GeoTIFF tempfile (or

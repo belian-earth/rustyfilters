@@ -82,9 +82,10 @@ separable sliding-sum engine, so cost per cell is independent of the
 window size.
 }
 \examples{
-m <- matrix(as.numeric(1:25), 5)
-rf_mean(m)
-rf_mean(m, window = c(3L, 5L), edge = "reflect")
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+rf_plot(volcano, main = "volcano")
+rf_plot(rf_mean(volcano, window = 7L), main = "7 x 7 mean")
+par(op)
 }
 \seealso{
 \code{\link[=rf_median]{rf_median()}}, \code{\link[=rf_gaussian]{rf_gaussian()}}, \code{\link[=rf_focal]{rf_focal()}} for other window

@@ -80,8 +80,10 @@ Convolves with the discrete Laplacian, highlighting local extrema and
 rapid changes (zero over flat and linearly varying regions).
 }
 \examples{
-m <- matrix(as.numeric(1:25), 5)
-rf_laplacian(m) # linear ramp: zero in the interior
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+rf_plot(volcano, main = "volcano")
+rf_plot(rf_laplacian(volcano), main = "Laplacian")
+par(op)
 }
 \seealso{
 \code{\link[=rf_convolve]{rf_convolve()}}, \code{\link[=rf_sobel]{rf_sobel()}}

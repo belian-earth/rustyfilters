@@ -118,9 +118,13 @@ sequential scan, which can differ at cluster fringes. The 98th percentile
 is computed per layer over valid cells.
 }
 \examples{
-set.seed(1)
-speckled <- matrix(rexp(400), 20, 20)
-rf_lee_sigma_improved(speckled, window = 7L, looks = 1, sigma = 0.9)
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+rf_plot(s1_sthelens, main = "Sentinel-1 VV")
+rf_plot(
+  rf_lee_sigma_improved(s1_sthelens, window = 7L, sigma = 0.9),
+  main = "improved Lee sigma"
+)
+par(op)
 }
 \references{
 Lee, J.-S., Wen, J.-H., Ainsworth, T. L., Chen, K.-S., &

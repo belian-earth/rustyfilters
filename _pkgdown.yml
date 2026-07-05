@@ -48,6 +48,11 @@ reference:
   - rf_convolve
   - rf_sobel
   - rf_laplacian
+- title: Data & visualisation
+  desc: Example data and quick image plotting.
+  contents:
+  - s1_sthelens
+  - rf_plot
 - title: Configuration
   desc: Multi-threading control.
   contents:

@@ -91,9 +91,10 @@ excluded and the remaining weights are rescaled, which also fills isolated
 \code{NA} holes with their neighbourhood estimate.
 }
 \examples{
-m <- matrix(as.numeric(1:25), 5)
-rf_gaussian(m, sigma = 1)
-rf_gaussian(m, sigma = 2, window = 7L, edge = "reflect")
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+rf_plot(volcano, main = "volcano")
+rf_plot(rf_gaussian(volcano, sigma = 2), main = "Gaussian, sigma = 2")
+par(op)
 }
 \seealso{
 \code{\link[=rf_mean]{rf_mean()}}, \code{\link[=rf_median]{rf_median()}}, \code{\link[=rf_focal]{rf_focal()}}, \code{\link[=rf_set_threads]{rf_set_threads()}}

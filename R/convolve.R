@@ -23,10 +23,11 @@
 #' @seealso [rf_sobel()], [rf_laplacian()], [rf_gaussian()],
 #'   [rf_set_threads()]
 #' @examples
-#' m <- matrix(as.numeric(1:25), 5)
 #' sharpen <- matrix(c(0, -1, 0, -1, 5, -1, 0, -1, 0), 3)
-#' rf_convolve(m, sharpen)
-#' rf_convolve(m, matrix(1, 3, 3) / 9, normalize = TRUE)
+#' op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+#' rf_plot(volcano, main = "volcano")
+#' rf_plot(rf_convolve(volcano, sharpen), main = "sharpened")
+#' par(op)
 #' @export
 rf_convolve <- function(x, ...) {
   UseMethod("rf_convolve")
@@ -78,9 +79,10 @@ rf_convolve.default <- function(x, ...) {
 #'   there, whereas a shrinking window would fabricate strong edges.
 #' @seealso [rf_convolve()], [rf_laplacian()]
 #' @examples
-#' m <- matrix(rep(c(1, 1, 5, 5), each = 5), 5)
-#' rf_sobel(m)
-#' rf_sobel(m, direction = "x")
+#' op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+#' rf_plot(volcano, main = "volcano")
+#' rf_plot(rf_sobel(volcano), main = "Sobel gradient magnitude")
+#' par(op)
 #' @export
 rf_sobel <- function(x, ...) {
   UseMethod("rf_sobel")
@@ -131,8 +133,10 @@ rf_sobel.default <- function(x, ...) {
 #'   (`c(0, 1, 0, 1, -4, 1, 0, 1, 0)`), `8L` to include diagonals.
 #' @seealso [rf_convolve()], [rf_sobel()]
 #' @examples
-#' m <- matrix(as.numeric(1:25), 5)
-#' rf_laplacian(m) # linear ramp: zero in the interior
+#' op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+#' rf_plot(volcano, main = "volcano")
+#' rf_plot(rf_laplacian(volcano), main = "Laplacian")
+#' par(op)
 #' @export
 rf_laplacian <- function(x, ...) {
   UseMethod("rf_laplacian")

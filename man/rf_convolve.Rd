@@ -97,10 +97,11 @@ sum. For zero-sum kernels this biases results near missing values; there
 is no principled general correction, so consider \code{na_policy = "propagate"} for derivative kernels on gappy data.
 }
 \examples{
-m <- matrix(as.numeric(1:25), 5)
 sharpen <- matrix(c(0, -1, 0, -1, 5, -1, 0, -1, 0), 3)
-rf_convolve(m, sharpen)
-rf_convolve(m, matrix(1, 3, 3) / 9, normalize = TRUE)
+op <- par(mfrow = c(1, 2), mar = c(1, 1, 2, 1))
+rf_plot(volcano, main = "volcano")
+rf_plot(rf_convolve(volcano, sharpen), main = "sharpened")
+par(op)
 }
 \seealso{
 \code{\link[=rf_sobel]{rf_sobel()}}, \code{\link[=rf_laplacian]{rf_laplacian()}}, \code{\link[=rf_gaussian]{rf_gaussian()}},
